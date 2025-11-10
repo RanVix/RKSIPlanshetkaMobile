@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { Animated, Dimensions, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import BurgerMenuIcon from '../../assets/BurgerMenu.svg';
 import CabinetIcon from '../../assets/Cabinet.svg';
 import CombinedIcon from '../../assets/Combined.svg';
@@ -22,6 +22,41 @@ type Lesson = {
 export default function HomeScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'calendar' | 'bell'>('calendar');
+  const slideAnim = useRef(new Animated.Value(-Dimensions.get('window').width * 0.6)).current;
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
+
+  const toggleMenu = () => {
+    if (menuOpen) {
+      // Закрываем меню
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: -Dimensions.get('window').width * 0.6,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(overlayOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start(() => setMenuOpen(false));
+    } else {
+      // Открываем меню
+      setMenuOpen(true);
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(overlayOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  };
 
   const data: Lesson[] = useMemo(
     () => [
@@ -61,23 +96,74 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Top bar with burger + search */}
+      {/* Оверлэй */}
+      {menuOpen && (
+        <Animated.View 
+          style={[
+            styles.overlay,
+            { opacity: overlayOpacity }
+          ]}
+        >
+          <TouchableOpacity 
+            style={styles.overlayTouchable}
+            activeOpacity={1}
+            onPress={toggleMenu}
+          />
+        </Animated.View>
+      )}
+
+      {/* Боковое меню */}
+      <Animated.View 
+        style={[
+          styles.sideMenu,
+          { transform: [{ translateX: slideAnim }] }
+        ]}
+      >
+        {/* Лого и титульник */}
+        <View style={styles.menuHeader}>
+          <Image 
+            source={require('../../assets/logoburger.png')} 
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+          <Text style={styles.appTitle}>РКСИ Планшетка</Text>
+        </View>
+
+        {/* Менюка и кнопки */}
+        <View style={styles.menuItems}>
+          <TouchableOpacity style={styles.menuItem}>
+            <Image source={require('../../assets/BellIcon.png')} style={styles.menuIcon} />
+            <Text style={styles.menuItemText}>Подписки</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem}>
+            <Image source={require('../../assets/TimeIcon.png')} style={styles.menuIcon} />
+            <Text style={styles.menuItemText}>Расписание звонков</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem}>
+            <Image source={require('../../assets/ThemeIcon.png')} style={styles.menuIcon} />
+            <Text style={styles.menuItemText}>Темы</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem}>
+            <Image source={require('../../assets/URLIcon.png')} style={styles.menuIcon} />
+            <Text style={styles.menuItemText}>Файл планшетки</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Футер бокового меню */}
+        <View style={styles.menuFooter}>
+          <Text style={styles.footerText}>v0.1.0 by Yarovich, RanVix</Text>
+        </View>
+      </Animated.View>
+      {/* Верхняя часть (иконка бургера и поиск) */}
       <View style={styles.topBar}>
         <View>
           <TouchableOpacity
             activeOpacity={0.7}
-            onPress={() => setMenuOpen((v) => !v)}
+            onPress={toggleMenu}
             style={styles.burgerButton}
           >
             <BurgerMenuIcon width={18} height={18} />
           </TouchableOpacity>
-          {menuOpen && (
-            <View style={styles.menuDropdown}>
-              <TouchableOpacity style={styles.menuItem}><Text style={styles.menuItemText}>Профиль</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.menuItem}><Text style={styles.menuItemText}>Настройки</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.menuItem}><Text style={styles.menuItemText}>Выход</Text></TouchableOpacity>
-            </View>
-          )}
         </View>
 
         <View style={styles.searchBox}>
@@ -90,14 +176,14 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Date pill */}
+      {/* Дата */}
       <View style={styles.dateRow}>
         <View style={styles.datePill}>
           <Text style={styles.dateText} numberOfLines={1}>Сегодня, 30.10 | 1 корпус</Text>
         </View>
       </View>
 
-      {/* Lessons list */}
+      {/* Список пар */}
       <FlatList
         data={data}
         keyExtractor={(item) => item.id}
@@ -110,7 +196,7 @@ export default function HomeScreen() {
         renderItem={({ item }) => (
           <View style={styles.card}>
             <View style={styles.cardRow}>
-              {/* Times + number */}
+              {/* Время и номер */}
               <View style={styles.timeCol}>
                 <Text style={styles.startTime}>{item.startTime}</Text>
                 {item.endTime ? (
@@ -121,7 +207,7 @@ export default function HomeScreen() {
                 </View>
               </View>
 
-              {/* Card content */}
+              {/* Контент пар */}
               <View style={styles.cardContent}>
                 <View style={styles.titleBar}>
                   <View style={styles.titleBarInner}>
@@ -129,19 +215,16 @@ export default function HomeScreen() {
                   </View>
                 </View>
 
-                {/* Line 1: Teacher */}
                 <View style={styles.infoLine}>
                   <UserIcon width={16} height={16} style={styles.icon} />
                   <Text style={styles.metaText} numberOfLines={1}>{item.teacher || '—'}</Text>
                 </View>
 
-                {/* Line 2: Room */}
                 <View style={styles.infoLine}>
                   <CabinetIcon width={16} height={16} style={styles.icon} />
                   <Text style={styles.metaText}>{item.room || '—'}</Text>
                 </View>
 
-                {/* Line 3: Group and room */}
                 {Boolean(item.group) && (
                   <View style={styles.infoLine}>
                     <CombinedIcon width={16} height={16} style={styles.icon} />
@@ -157,7 +240,7 @@ export default function HomeScreen() {
         )}
       />
 
-      {/* Bottom tab switcher */}
+      {/* Снизу смена окон */}
       <View style={styles.bottomTabs}>
         <View style={styles.toggleContainer}>
           <TouchableOpacity
@@ -208,19 +291,72 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   burgerIcon: { color: '#D1D5DB' },
-  menuDropdown: {
+  overlay: {
     position: 'absolute',
-    top: 48,
+    top: 0,
     left: 0,
-    width: 160,
-    borderRadius: 12,
-    backgroundColor: '#1B2129',
-    padding: 8,
-    borderWidth: 1,
-    borderColor: '#222933',
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 998,
   },
-  menuItem: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
-  menuItemText: { color: '#F3F4F6', fontSize: 13 },
+  overlayTouchable: {
+    flex: 1,
+  },
+  sideMenu: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    width: Dimensions.get('window').width * 0.6,
+    backgroundColor: '#191C21',
+    zIndex: 999,
+    paddingTop: 60,
+    paddingHorizontal: 12,
+  },
+  menuHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  logoImage: {
+    width: 40,
+    height: 40,
+    marginRight: 12,
+  },
+  appTitle: {
+    color: '#F3F4F6',
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  menuItems: {
+    flex: 1,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  menuIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 12,
+  },
+  menuItemText: {
+    color: '#F3F4F6',
+    fontSize: 16,
+  },
+  menuFooter: {
+    paddingBottom: 20,
+    alignItems: 'center',
+  },
+  footerText: {
+    color: '#9CA3AF',
+    fontSize: 12,
+  },
   searchBox: {
     flex: 1,
     height: 40,
