@@ -7,6 +7,7 @@ import SearchIcon from '../../assets/SearchIcon.svg';
 import UserIcon from '../../assets/User.svg';
 import BellIcon from '../../assets/WhiteBell.svg';
 import CalendarIcon from '../../assets/calendarik.svg';
+import TrashIcon from '../../assets/trash.svg';
 
 type Lesson = {
   id: string;
@@ -22,6 +23,8 @@ type Lesson = {
 export default function HomeScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'calendar' | 'bell'>('calendar');
+  const [currentPage, setCurrentPage] = useState<'home' | 'subscriptions'>('home');
+  const [subscriptions, setSubscriptions] = useState<{ id: string; title: string }[]>([]);
   const slideAnim = useRef(new Animated.Value(-Dimensions.get('window').width * 0.6)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
@@ -120,18 +123,32 @@ export default function HomeScreen() {
         ]}
       >
         {/* Лого и титульник */}
-        <View style={styles.menuHeader}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          style={styles.menuHeader}
+          onPress={() => {
+            setCurrentPage('home');
+            setActiveTab('calendar');
+            toggleMenu();
+          }}
+        >
           <Image 
             source={require('../../assets/logoburger.png')} 
             style={styles.logoImage}
             resizeMode="contain"
           />
           <Text style={styles.appTitle}>РКСИ Планшетка</Text>
-        </View>
+        </TouchableOpacity>
 
         {/* Менюка и кнопки */}
         <View style={styles.menuItems}>
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              setCurrentPage('subscriptions');
+              toggleMenu();
+            }}
+          >
             <Image source={require('../../assets/BellIcon.png')} style={styles.menuIcon} />
             <Text style={styles.menuItemText}>Подписки</Text>
           </TouchableOpacity>
@@ -176,115 +193,168 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {activeTab === 'calendar' ? (
-        <>
-          {/* Дата */}
-          <View style={styles.dateRow}>
-            <View style={styles.datePill}>
-              <Text style={styles.dateText} numberOfLines={1}>Сегодня, 30.10 | 1 корпус</Text>
+      {currentPage === 'home' ? (
+        activeTab === 'calendar' ? (
+          <>
+            {/* Дата */}
+            <View style={styles.dateRow}>
+              <View style={styles.datePill}>
+                <Text style={styles.dateText} numberOfLines={1}>Сегодня, 30.10 | 1 корпус</Text>
+              </View>
+            </View>
+
+            {/* Список пар */}
+            <FlatList
+              data={data}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.listContent}
+              ListFooterComponent={(
+                <View style={styles.footerInline}>
+                  <Text style={styles.footerLinkText}>планшетка</Text>
+                </View>
+              )}
+              renderItem={({ item }) => (
+                <View style={styles.card}>
+                  <View style={styles.cardRow}>
+                    {/* Время и номер */}
+                    <View style={styles.timeCol}>
+                      <Text style={styles.startTime}>{item.startTime}</Text>
+                      {item.endTime ? (
+                        <Text style={styles.endTime}>{item.endTime}</Text>
+                      ) : null}
+                      <View style={styles.lessonNumberWrap}>
+                        <Text style={styles.lessonNumber}>{item.number}</Text>
+                      </View>
+                    </View>
+
+                    {/* Контент пар */}
+                    <View style={styles.cardContent}>
+                      <View style={styles.titleBar}>
+                        <View style={styles.titleBarInner}>
+                          <Text style={styles.titleText} numberOfLines={2}>{item.title}</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.infoLine}>
+                        <UserIcon width={16} height={16} style={styles.icon} />
+                        <Text style={styles.metaText} numberOfLines={1}>{item.teacher || '—'}</Text>
+                      </View>
+
+                      <View style={styles.infoLine}>
+                        <CabinetIcon width={16} height={16} style={styles.icon} />
+                        <Text style={styles.metaText}>{item.room || '—'}</Text>
+                      </View>
+
+                      {Boolean(item.group) && (
+                        <View style={styles.infoLine}>
+                          <CombinedIcon width={16} height={16} style={styles.icon} />
+                          <Text style={styles.metaText} numberOfLines={1}>
+                            {item.group}
+                            {item.room ? ` · ${item.room}` : ''}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                </View>
+              )}
+            />
+          </>
+        ) : (
+          <View style={styles.notificationsContainer}>
+            <Text style={styles.notificationsTitle}>Уведомления</Text>
+            <View style={styles.notificationsEmpty}>
+              <BellIcon width={24} height={24} style={styles.icon} />
+              <Text style={styles.notificationsEmptyText}>Пока нет уведомлений</Text>
             </View>
           </View>
-
-          {/* Список пар */}
+        )
+      ) : (
+        <View style={styles.subscriptionsContainer}>
+          <Text style={styles.subscriptionsTitle}>Подписки</Text>
           <FlatList
-            data={data}
+            data={subscriptions}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            ListFooterComponent={(
-              <View style={styles.footerInline}>
-                <Text style={styles.footerLinkText}>планшетка</Text>
+            contentContainerStyle={styles.subscriptionsList}
+            ListEmptyComponent={(
+              <View style={styles.notificationsEmpty}>
+                <Text style={styles.notificationsEmptyText}>Подписок пока нет</Text>
               </View>
             )}
             renderItem={({ item }) => (
-              <View style={styles.card}>
-                <View style={styles.cardRow}>
-                  {/* Время и номер */}
-                  <View style={styles.timeCol}>
-                    <Text style={styles.startTime}>{item.startTime}</Text>
-                    {item.endTime ? (
-                      <Text style={styles.endTime}>{item.endTime}</Text>
-                    ) : null}
-                    <View style={styles.lessonNumberWrap}>
-                      <Text style={styles.lessonNumber}>{item.number}</Text>
-                    </View>
-                  </View>
-
-                  {/* Контент пар */}
-                  <View style={styles.cardContent}>
-                    <View style={styles.titleBar}>
-                      <View style={styles.titleBarInner}>
-                        <Text style={styles.titleText} numberOfLines={2}>{item.title}</Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.infoLine}>
-                      <UserIcon width={16} height={16} style={styles.icon} />
-                      <Text style={styles.metaText} numberOfLines={1}>{item.teacher || '—'}</Text>
-                    </View>
-
-                    <View style={styles.infoLine}>
-                      <CabinetIcon width={16} height={16} style={styles.icon} />
-                      <Text style={styles.metaText}>{item.room || '—'}</Text>
-                    </View>
-
-                    {Boolean(item.group) && (
-                      <View style={styles.infoLine}>
-                        <CombinedIcon width={16} height={16} style={styles.icon} />
-                        <Text style={styles.metaText} numberOfLines={1}>
-                          {item.group}
-                          {item.room ? ` · ${item.room}` : ''}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
+              <View style={styles.subscriptionCard}>
+                <Text style={styles.subscriptionTitle}>{item.title}</Text>
+                <TouchableOpacity
+                  style={styles.subscriptionDelete}
+                  onPress={() => setSubscriptions((prev) => prev.filter((s) => s.id !== item.id))}
+                >
+                  <TrashIcon width={18} height={18} />
+                </TouchableOpacity>
               </View>
             )}
           />
-        </>
-      ) : (
-        <View style={styles.notificationsContainer}>
-          <Text style={styles.notificationsTitle}>Уведомления</Text>
-          <View style={styles.notificationsEmpty}>
-            <BellIcon width={24} height={24} style={styles.icon} />
-            <Text style={styles.notificationsEmptyText}>Пока нет уведомлений</Text>
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            style={[
+              styles.fabAdd,
+              subscriptions.length >= 10 && styles.fabAddDisabled,
+            ]}
+            onPress={() => {
+              if (subscriptions.length >= 10) return;
+              const samples = ['ИС-21', 'Сулавко С.Н.'];
+              const next = samples[subscriptions.length % samples.length];
+              setSubscriptions((prev) => [
+                ...prev,
+                { id: `${Date.now()}`, title: next },
+              ]);
+            }}
+            disabled={subscriptions.length >= 10}
+          >
+            <Text style={styles.fabAddText}>+</Text>
+          </TouchableOpacity>
+
+          <View style={styles.subscriptionsFooter}>
+            <Text style={styles.subscriptionsCounter}>{subscriptions.length}/10</Text>
           </View>
         </View>
       )}
 
-      {/* Снизу смена окон */}
-      <View style={styles.bottomTabs}>
-        <View style={styles.toggleContainer}>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => setActiveTab('calendar')}
-            style={[
-              styles.toggleButton,
-              activeTab === 'calendar' && styles.toggleButtonActive,
-            ]}
-          >
-            <CalendarIcon
-              width={20}
-              height={20}
-              style={activeTab === 'calendar' ? undefined : styles.inactiveIcon}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => setActiveTab('bell')}
-            style={[
-              styles.toggleButton,
-              activeTab === 'bell' && styles.toggleButtonActive,
-            ]}
-          >
-            <BellIcon
-              width={20}
-              height={20}
-              style={activeTab === 'bell' ? undefined : styles.inactiveIcon}
-            />
-          </TouchableOpacity>
+      {currentPage === 'home' && (
+        /* Снизу смена окон */
+        <View style={styles.bottomTabs}>
+          <View style={styles.toggleContainer}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setActiveTab('calendar')}
+              style={[
+                styles.toggleButton,
+                activeTab === 'calendar' && styles.toggleButtonActive,
+              ]}
+            >
+              <CalendarIcon
+                width={20}
+                height={20}
+                style={activeTab === 'calendar' ? undefined : styles.inactiveIcon}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setActiveTab('bell')}
+              style={[
+                styles.toggleButton,
+                activeTab === 'bell' && styles.toggleButtonActive,
+              ]}
+            >
+              <BellIcon
+                width={20}
+                height={20}
+                style={activeTab === 'bell' ? undefined : styles.inactiveIcon}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      )}
     </View>
   );
 }
@@ -492,6 +562,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 12,
+    textAlign: 'center',
   },
   notificationsEmpty: {
     flex: 1,
@@ -502,5 +573,78 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     fontSize: 14,
     marginTop: 8,
+  },
+  subscriptionsContainer: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
+  subscriptionsTitle: {
+    color: '#F3F4F6',
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  subscriptionsList: {
+    paddingBottom: 120,
+    alignItems: 'center',
+  },
+  subscriptionCard: {
+    width: '100%',
+    borderRadius: 12,
+    backgroundColor: '#171C22',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  subscriptionTitle: {
+    color: '#F3F4F6',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  subscriptionDelete: {
+    height: 28,
+    width: 28,
+    borderRadius: 14,
+    backgroundColor: '#1B2129',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fabAdd: {
+    position: 'absolute',
+    right: 16,
+    bottom: 80,
+    height: 56,
+    width: 56,
+    borderRadius: 28,
+    backgroundColor: '#3D4A5D',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  fabAddDisabled: {
+    backgroundColor: '#2A3443',
+    opacity: 0.6,
+  },
+  fabAddText: {
+    color: '#F3F4F6',
+    fontSize: 28,
+    marginTop: -2,
+  },
+  subscriptionsFooter: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  subscriptionsCounter: {
+    color: '#BFBFBF',
+    fontSize: 14,
   },
 });
