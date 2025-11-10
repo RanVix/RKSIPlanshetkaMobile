@@ -1,98 +1,277 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useMemo, useState } from 'react';
+import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import BurgerMenuIcon from '../../assets/BurgerMenu.svg';
+import CabinetIcon from '../../assets/Cabinet.svg';
+import CombinedIcon from '../../assets/Combined.svg';
+import SearchIcon from '../../assets/SearchIcon.svg';
+import UserIcon from '../../assets/User.svg';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+type Lesson = {
+  id: string;
+  startTime: string;
+  endTime?: string;
+  title: string;
+  teacher?: string;
+  room?: string;
+  group?: string;
+  number: number;
+};
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const [menuOpen, setMenuOpen] = useState(false);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const data: Lesson[] = useMemo(
+    () => [
+      {
+        id: '1',
+        startTime: '11:30',
+        endTime: '13:00',
+        title: 'Основы кибернетики и робототехники',
+        teacher: 'Сулавко С.Н.',
+        room: '414',
+        group: 'ИС-28',
+        number: 3,
+      },
+      {
+        id: '2',
+        startTime: '13:10',
+        endTime: '14:40',
+        title: '—',
+        teacher: 'Швачич Д.С.',
+        room: 'с/32',
+        group: '',
+        number: 4,
+      },
+      {
+        id: '3',
+        startTime: '15:00',
+        endTime: '16:30',
+        title: 'Иностранный язык в профессиональной деятельности',
+        teacher: 'Лебедева М.В',
+        room: '104',
+        group: '',
+        number: 5,
+      },
+    ],
+    []
+  );
+
+  return (
+    <View style={styles.container}>
+      {/* Top bar with burger + search */}
+      <View style={styles.topBar}>
+        <View>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setMenuOpen((v) => !v)}
+            style={styles.burgerButton}
+          >
+            <BurgerMenuIcon width={18} height={18} />
+          </TouchableOpacity>
+          {menuOpen && (
+            <View style={styles.menuDropdown}>
+              <TouchableOpacity style={styles.menuItem}><Text style={styles.menuItemText}>Профиль</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.menuItem}><Text style={styles.menuItemText}>Настройки</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.menuItem}><Text style={styles.menuItemText}>Выход</Text></TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.searchBox}>
+          <TextInput
+            placeholder="Группа: ИС-21"
+            placeholderTextColor="#FFFF"
+            style={styles.searchInput}
+          />
+          <SearchIcon width={16} height={16} />
+        </View>
+      </View>
+
+      {/* Date pill */}
+      <View style={styles.dateRow}>
+        <View style={styles.datePill}>
+          <Text style={styles.dateText} numberOfLines={1}>Сегодня, 30.10 | 1 корпус</Text>
+        </View>
+      </View>
+
+      {/* Lessons list */}
+      <FlatList
+        data={data}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        ListFooterComponent={(
+          <View style={styles.footerInline}>
+            <Text style={styles.footerLinkText}>планшетка</Text>
+          </View>
+        )}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <View style={styles.cardRow}>
+              {/* Times + number */}
+              <View style={styles.timeCol}>
+                <Text style={styles.startTime}>{item.startTime}</Text>
+                {item.endTime ? (
+                  <Text style={styles.endTime}>{item.endTime}</Text>
+                ) : null}
+                <View style={styles.lessonNumberWrap}>
+                  <Text style={styles.lessonNumber}>{item.number}</Text>
+                </View>
+              </View>
+
+              {/* Card content */}
+              <View style={styles.cardContent}>
+                <View style={styles.titleBar}>
+                  <View style={styles.titleBarInner}>
+                    <Text style={styles.titleText} numberOfLines={2}>{item.title}</Text>
+                  </View>
+                </View>
+
+                {/* Line 1: Teacher */}
+                <View style={styles.infoLine}>
+                  <UserIcon width={16} height={16} style={styles.icon} />
+                  <Text style={styles.metaText} numberOfLines={1}>{item.teacher || '—'}</Text>
+                </View>
+
+                {/* Line 2: Room */}
+                <View style={styles.infoLine}>
+                  <CabinetIcon width={16} height={16} style={styles.icon} />
+                  <Text style={styles.metaText}>{item.room || '—'}</Text>
+                </View>
+
+                {/* Line 3: Group and room */}
+                {Boolean(item.group) && (
+                  <View style={styles.infoLine}>
+                    <CombinedIcon width={16} height={16} style={styles.icon} />
+                    <Text style={styles.metaText} numberOfLines={1}>
+                      {item.group}
+                      {item.room ? ` · ${item.room}` : ''}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          </View>
+        )}
+      />
+
+      {/* Spacer at bottom to avoid overlap with system UI */}
+      <View style={{ height: 8 }} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: '#0F1318',
+  },
+  topBar: {
+    paddingHorizontal: 16,
+    paddingTop: 44,
+    paddingBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  burgerButton: {
+    height: 40,
+    width: 40,
+    borderRadius: 12,
+    backgroundColor: '#1B2129',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
+  burgerIcon: { color: '#D1D5DB' },
+  menuDropdown: {
     position: 'absolute',
+    top: 48,
+    left: 0,
+    width: 160,
+    borderRadius: 12,
+    backgroundColor: '#1B2129',
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#222933',
   },
+  menuItem: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
+  menuItemText: { color: '#F3F4F6', fontSize: 13 },
+  searchBox: {
+    flex: 1,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#1B2129',
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  searchInput: { flex: 1, color: '#F3F4F6' },
+  searchIcon: { color: '#9CA3AF' },
+  dateRow: { paddingHorizontal: 16, alignItems: 'center' },
+  datePill: {
+    height: 32,
+    borderRadius: 999,
+    backgroundColor: '#3D4A5D',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    alignSelf: 'center',
+    maxWidth: '90%',
+  },
+  dateText: { color: '#E5E7EB', fontSize: 13, flexShrink: 1, marginRight: 6 },
+  listContent: { padding: 16 },
+  footerLinkContainer: { alignItems: 'center', paddingVertical: 16 },
+  footerInline: { alignItems: 'center', paddingTop: 8, paddingBottom: 4 },
+  footerStatic: { alignItems: 'center', paddingVertical: 24 },
+  footerLinkText: { color: '#BFBFBF', fontSize: 12, fontWeight: '400' },
+  card: {
+    borderRadius: 16,
+    backgroundColor: '#171C22',
+    padding: 12,
+    marginBottom: 12,
+  },
+  cardRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  timeCol: { width: 64, alignItems: 'flex-start' },
+  startTime: { color: '#F3F4F6', fontSize: 20, fontWeight: '600' },
+  endTime: { color: '#9CA3AF', fontSize: 13, marginTop: 4 },
+  lessonNumberWrap: {
+    marginTop: 12,
+    height: 28,
+    width: 28,
+    borderRadius: 14,
+    backgroundColor: '#D1D5DB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lessonNumber: { color: '#1B2129', fontSize: 16, fontWeight: 800 },
+  cardContent: { flex: 1 },
+  titleBar: { marginBottom: 8 },
+  titleBarInner: {
+    borderRadius: 12,
+    backgroundColor: '#1B2129',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  titleText: { color: '#F3F4F6', fontSize: 13, fontWeight: '500', flex: 1 },
+  badge: {
+    height: 24,
+    paddingHorizontal: 8,
+    borderRadius: 999,
+    backgroundColor: '#273244',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  badgeText: { color: '#E5E7EB', fontSize: 12 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  metaRowAlt: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', marginRight: 12 },
+  metaIcon: { color: '#9CA3AF' },
+  metaText: { color: '#E5E7EB', fontSize: 13, maxWidth: '90%' },
+  infoLine: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+  icon: { marginRight: 8 },
 });
+
