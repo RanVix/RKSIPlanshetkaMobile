@@ -11,7 +11,6 @@ export default function ModalScreen() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -27,3 +26,4 @@ const styles = StyleSheet.create({
   },
   linkText: { color: '#0A84FF', fontWeight: '500' },
 });
+

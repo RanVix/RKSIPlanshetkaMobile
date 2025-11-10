@@ -5,6 +5,8 @@ import CabinetIcon from '../../assets/Cabinet.svg';
 import CombinedIcon from '../../assets/Combined.svg';
 import SearchIcon from '../../assets/SearchIcon.svg';
 import UserIcon from '../../assets/User.svg';
+import BellIcon from '../../assets/bell.svg';
+import CalendarIcon from '../../assets/calendarik.svg';
 
 type Lesson = {
   id: string;
@@ -19,6 +21,7 @@ type Lesson = {
 
 export default function HomeScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'calendar' | 'bell'>('calendar');
 
   const data: Lesson[] = useMemo(
     () => [
@@ -154,8 +157,31 @@ export default function HomeScreen() {
         )}
       />
 
-      {/* Spacer at bottom to avoid overlap with system UI */}
-      <View style={{ height: 8 }} />
+      {/* Bottom tab switcher */}
+      <View style={styles.bottomTabs}>
+        <View style={styles.toggleContainer}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setActiveTab('calendar')}
+            style={[
+              styles.toggleButton,
+              activeTab === 'calendar' && styles.toggleButtonActive,
+            ]}
+          >
+            <CalendarIcon width={20} height={20} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setActiveTab('bell')}
+            style={[
+              styles.toggleButton,
+              activeTab === 'bell' && styles.toggleButtonActive,
+            ]}
+          >
+            <BellIcon width={20} height={20} />
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 }
@@ -273,5 +299,28 @@ const styles = StyleSheet.create({
   metaText: { color: '#E5E7EB', fontSize: 13, maxWidth: '90%' },
   infoLine: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
   icon: { marginRight: 8 },
+  bottomTabs: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingBottom: 32,
+    backgroundColor: '#0F1318',
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#1B2129',
+    borderRadius: 24,
+    padding: 4,
+    width: 100,
+    justifyContent: 'space-between',
+  },
+  toggleButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toggleButtonActive: {
+    backgroundColor: '#3D4A5D',
+  },
 });
-
