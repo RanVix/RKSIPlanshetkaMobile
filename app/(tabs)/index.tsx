@@ -5,7 +5,7 @@ import CabinetIcon from '../../assets/Cabinet.svg';
 import CombinedIcon from '../../assets/Combined.svg';
 import SearchIcon from '../../assets/SearchIcon.svg';
 import UserIcon from '../../assets/User.svg';
-import BellIcon from '../../assets/bell.svg';
+import BellIcon from '../../assets/WhiteBell.svg';
 import CalendarIcon from '../../assets/calendarik.svg';
 
 type Lesson = {
@@ -176,69 +176,81 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Дата */}
-      <View style={styles.dateRow}>
-        <View style={styles.datePill}>
-          <Text style={styles.dateText} numberOfLines={1}>Сегодня, 30.10 | 1 корпус</Text>
-        </View>
-      </View>
-
-      {/* Список пар */}
-      <FlatList
-        data={data}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        ListFooterComponent={(
-          <View style={styles.footerInline}>
-            <Text style={styles.footerLinkText}>планшетка</Text>
-          </View>
-        )}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={styles.cardRow}>
-              {/* Время и номер */}
-              <View style={styles.timeCol}>
-                <Text style={styles.startTime}>{item.startTime}</Text>
-                {item.endTime ? (
-                  <Text style={styles.endTime}>{item.endTime}</Text>
-                ) : null}
-                <View style={styles.lessonNumberWrap}>
-                  <Text style={styles.lessonNumber}>{item.number}</Text>
-                </View>
-              </View>
-
-              {/* Контент пар */}
-              <View style={styles.cardContent}>
-                <View style={styles.titleBar}>
-                  <View style={styles.titleBarInner}>
-                    <Text style={styles.titleText} numberOfLines={2}>{item.title}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.infoLine}>
-                  <UserIcon width={16} height={16} style={styles.icon} />
-                  <Text style={styles.metaText} numberOfLines={1}>{item.teacher || '—'}</Text>
-                </View>
-
-                <View style={styles.infoLine}>
-                  <CabinetIcon width={16} height={16} style={styles.icon} />
-                  <Text style={styles.metaText}>{item.room || '—'}</Text>
-                </View>
-
-                {Boolean(item.group) && (
-                  <View style={styles.infoLine}>
-                    <CombinedIcon width={16} height={16} style={styles.icon} />
-                    <Text style={styles.metaText} numberOfLines={1}>
-                      {item.group}
-                      {item.room ? ` · ${item.room}` : ''}
-                    </Text>
-                  </View>
-                )}
-              </View>
+      {activeTab === 'calendar' ? (
+        <>
+          {/* Дата */}
+          <View style={styles.dateRow}>
+            <View style={styles.datePill}>
+              <Text style={styles.dateText} numberOfLines={1}>Сегодня, 30.10 | 1 корпус</Text>
             </View>
           </View>
-        )}
-      />
+
+          {/* Список пар */}
+          <FlatList
+            data={data}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            ListFooterComponent={(
+              <View style={styles.footerInline}>
+                <Text style={styles.footerLinkText}>планшетка</Text>
+              </View>
+            )}
+            renderItem={({ item }) => (
+              <View style={styles.card}>
+                <View style={styles.cardRow}>
+                  {/* Время и номер */}
+                  <View style={styles.timeCol}>
+                    <Text style={styles.startTime}>{item.startTime}</Text>
+                    {item.endTime ? (
+                      <Text style={styles.endTime}>{item.endTime}</Text>
+                    ) : null}
+                    <View style={styles.lessonNumberWrap}>
+                      <Text style={styles.lessonNumber}>{item.number}</Text>
+                    </View>
+                  </View>
+
+                  {/* Контент пар */}
+                  <View style={styles.cardContent}>
+                    <View style={styles.titleBar}>
+                      <View style={styles.titleBarInner}>
+                        <Text style={styles.titleText} numberOfLines={2}>{item.title}</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.infoLine}>
+                      <UserIcon width={16} height={16} style={styles.icon} />
+                      <Text style={styles.metaText} numberOfLines={1}>{item.teacher || '—'}</Text>
+                    </View>
+
+                    <View style={styles.infoLine}>
+                      <CabinetIcon width={16} height={16} style={styles.icon} />
+                      <Text style={styles.metaText}>{item.room || '—'}</Text>
+                    </View>
+
+                    {Boolean(item.group) && (
+                      <View style={styles.infoLine}>
+                        <CombinedIcon width={16} height={16} style={styles.icon} />
+                        <Text style={styles.metaText} numberOfLines={1}>
+                          {item.group}
+                          {item.room ? ` · ${item.room}` : ''}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
+            )}
+          />
+        </>
+      ) : (
+        <View style={styles.notificationsContainer}>
+          <Text style={styles.notificationsTitle}>Уведомления</Text>
+          <View style={styles.notificationsEmpty}>
+            <BellIcon width={24} height={24} style={styles.icon} />
+            <Text style={styles.notificationsEmptyText}>Пока нет уведомлений</Text>
+          </View>
+        </View>
+      )}
 
       {/* Снизу смена окон */}
       <View style={styles.bottomTabs}>
@@ -251,7 +263,11 @@ export default function HomeScreen() {
               activeTab === 'calendar' && styles.toggleButtonActive,
             ]}
           >
-            <CalendarIcon width={20} height={20} />
+            <CalendarIcon
+              width={20}
+              height={20}
+              style={activeTab === 'calendar' ? undefined : styles.inactiveIcon}
+            />
           </TouchableOpacity>
           <TouchableOpacity
             activeOpacity={0.7}
@@ -261,7 +277,11 @@ export default function HomeScreen() {
               activeTab === 'bell' && styles.toggleButtonActive,
             ]}
           >
-            <BellIcon width={20} height={20} />
+            <BellIcon
+              width={20}
+              height={20}
+              style={activeTab === 'bell' ? undefined : styles.inactiveIcon}
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -458,5 +478,29 @@ const styles = StyleSheet.create({
   },
   toggleButtonActive: {
     backgroundColor: '#3D4A5D',
+  },
+  inactiveIcon: {
+    opacity: 0.4,
+  },
+  notificationsContainer: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
+  notificationsTitle: {
+    color: '#F3F4F6',
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  notificationsEmpty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notificationsEmptyText: {
+    color: '#9CA3AF',
+    fontSize: 14,
+    marginTop: 8,
   },
 });
