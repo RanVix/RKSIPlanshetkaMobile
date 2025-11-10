@@ -23,7 +23,7 @@ type Lesson = {
 export default function HomeScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'calendar' | 'bell'>('calendar');
-  const [currentPage, setCurrentPage] = useState<'home' | 'subscriptions'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'subscriptions' | 'bells'>('home');
   const [subscriptions, setSubscriptions] = useState<{ id: string; title: string }[]>([]);
   const slideAnim = useRef(new Animated.Value(-Dimensions.get('window').width * 0.6)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
@@ -154,7 +154,15 @@ export default function HomeScreen() {
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem}>
             <Image source={require('../../assets/TimeIcon.png')} style={styles.menuIcon} />
-            <Text style={styles.menuItemText}>Расписание звонков</Text>
+            <Text
+              style={styles.menuItemText}
+              onPress={() => {
+                setCurrentPage('bells');
+                toggleMenu();
+              }}
+            >
+              Расписание звонков
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem}>
             <Image source={require('../../assets/ThemeIcon.png')} style={styles.menuIcon} />
@@ -270,6 +278,7 @@ export default function HomeScreen() {
           </View>
         )
       ) : (
+        currentPage === 'subscriptions' ? (
         <View style={styles.subscriptionsContainer}>
           <Text style={styles.subscriptionsTitle}>Подписки</Text>
           <FlatList
@@ -318,6 +327,58 @@ export default function HomeScreen() {
             <Text style={styles.subscriptionsCounter}>{subscriptions.length}/10</Text>
           </View>
         </View>
+        ) : (
+          <View style={styles.bellsContainer}>
+            <Text style={styles.bellsTitle}>Расписание звонков</Text>
+            <FlatList
+              data={[
+                {
+                  id: 'short',
+                  title: 'Сокращённые пары',
+                  times: ['8:00 - 8:50','9:00 - 9:50','10:00 - 10:50','11:00 - 11:50','12:00 - 12:50','13:00 - 13:50','14:00 - 14:50'],
+                },
+                {
+                  id: 'usual',
+                  title: 'Обычное расписание',
+                  times: ['8:00 - 9:30','9:40 - 11:10','11:30 - 13:00','13:10 - 14:40','15:00 - 16:30','16:40 - 18:10','18:20 - 19:50'],
+                },
+                {
+                  id: 'withClass',
+                  title: 'С классным часом',
+                  times: ['8:00 - 9:30','9:40 - 11:10','11:30 - 13:00','13:05 - 14:05','14:10 - 15:40','16:00 - 17:30','17:40 - 19:10'],
+                },
+              ]}
+              keyExtractor={(i) => i.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              snapToAlignment="center"
+              decelerationRate="fast"
+              contentContainerStyle={styles.bellsList}
+              renderItem={({ item, index }) => {
+                const screen = Dimensions.get('window').width;
+                const cardWidth = screen * 0.52;
+                return (
+                  <View style={[styles.bellCard, { width: cardWidth }]}>
+                    <Text style={styles.bellCardTitle}>{item.title}</Text>
+                    {item.times.map((t, idx) => (
+                      <View key={idx} style={styles.bellRow}>
+                        <View style={styles.bellNum}><Text style={styles.bellNumText}>{idx + 1}</Text></View>
+                        <Text style={styles.bellTime}>{t}</Text>
+                      </View>
+                    ))}
+                  </View>
+                );
+              }}
+              ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
+              snapToInterval={Dimensions.get('window').width * 0.52 + 12}
+              initialScrollIndex={1}
+              getItemLayout={(_, i) => {
+                const size = Dimensions.get('window').width * 0.52 + 12;
+                return { length: size, offset: size * i, index: i };
+              }}
+            />
+          </View>
+        )
       )}
 
       {currentPage === 'home' && (
@@ -646,5 +707,60 @@ const styles = StyleSheet.create({
   subscriptionsCounter: {
     color: '#BFBFBF',
     fontSize: 14,
+  },
+  bellsContainer: {
+    flex: 1,
+    paddingTop: 8,
+  },
+  bellsTitle: {
+    color: '#F3F4F6',
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 16,
+  },
+  bellsList: {
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+  },
+  bellCard: {
+    backgroundColor: '#171C22',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    minHeight: 200,
+    maxHeight: 400,
+  },
+  bellCardTitle: {
+    color: '#F3F4F6',
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 18,
+  },
+  bellRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  bellNum: {
+    height: 30,
+    width: 30,
+    borderRadius: 15,
+    backgroundColor: '#D1D5DB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  bellNumText: {
+    color: '#1B2129',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  bellTime: {
+    color: '#F3F4F6',
+    fontSize: 18,
+    fontWeight: '600',
   },
 });
