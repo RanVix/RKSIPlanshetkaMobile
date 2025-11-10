@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Animated, Dimensions, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Animated, Dimensions, FlatList, Image, Linking, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import BurgerMenuIcon from '../../assets/BurgerMenu.svg';
 import CabinetIcon from '../../assets/Cabinet.svg';
 import CombinedIcon from '../../assets/Combined.svg';
@@ -168,7 +168,17 @@ export default function HomeScreen() {
             <Image source={require('../../assets/ThemeIcon.png')} style={styles.menuIcon} />
             <Text style={styles.menuItemText}>Темы</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={async () => {
+              const url = 'https://drive.google.com/drive/folders/1kUYiSAafghhYR0ARyXwPW1HZPpHcFIag?usp=sharing';
+              const supported = await Linking.canOpenURL(url);
+              if (supported) {
+                await Linking.openURL(url);
+              }
+              toggleMenu();
+            }}
+          >
             <Image source={require('../../assets/URLIcon.png')} style={styles.menuIcon} />
             <Text style={styles.menuItemText}>Файл планшетки</Text>
           </TouchableOpacity>
@@ -523,7 +533,7 @@ const styles = StyleSheet.create({
   datePill: {
     height: 32,
     borderRadius: 999,
-    backgroundColor: '#3D4A5D',
+    backgroundColor: '#191C21',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
