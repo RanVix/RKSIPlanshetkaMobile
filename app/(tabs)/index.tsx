@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Dimensions, FlatList, Image, Linking, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import BurgerMenuIcon from '../../assets/BurgerMenu.svg';
 import CabinetIcon from '../../assets/Cabinet.svg';
@@ -27,6 +27,7 @@ export default function HomeScreen() {
   const [subscriptions, setSubscriptions] = useState<{ id: string; title: string }[]>([]);
   const slideAnim = useRef(new Animated.Value(-Dimensions.get('window').width * 0.6)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
+  const bellsFlatListRef = useRef<FlatList>(null);
 
   const toggleMenu = () => {
     if (menuOpen) {
@@ -96,6 +97,20 @@ export default function HomeScreen() {
     ],
     []
   );
+
+  // Центрируем камеру на "Обычное расписание" при входе на страницу расписания звонков
+  useEffect(() => {
+    if (currentPage === 'bells' && bellsFlatListRef.current) {
+      // Используем setTimeout для того, чтобы FlatList успел отрендериться
+      setTimeout(() => {
+        bellsFlatListRef.current?.scrollToIndex({
+          index: 1, // Индекс "Обычное расписание"
+          animated: true,
+          viewPosition: 0.5, // Центрируем элемент
+        });
+      }, 100);
+    }
+  }, [currentPage]);
 
   return (
     <View style={styles.container}>
@@ -341,6 +356,7 @@ export default function HomeScreen() {
           <View style={styles.bellsContainer}>
             <Text style={styles.bellsTitle}>Расписание звонков</Text>
             <FlatList
+              ref={bellsFlatListRef}
               data={[
                 {
                   id: 'short',
@@ -385,6 +401,13 @@ export default function HomeScreen() {
               getItemLayout={(_, i) => {
                 const size = Dimensions.get('window').width * 0.52 + 12;
                 return { length: size, offset: size * i, index: i };
+              }}
+              onScrollToIndexFailed={(info) => {
+                // Обработка ошибки, если индекс не найден
+                const wait = new Promise(resolve => setTimeout(resolve, 500));
+                wait.then(() => {
+                  bellsFlatListRef.current?.scrollToIndex({ index: info.index, animated: true });
+                });
               }}
             />
           </View>
