@@ -121,7 +121,7 @@ export default function HomeScreen() {
     []
   );
 
-  // Данные для поиска
+  // Данные для поиска (пока демка)
   const groups = useMemo(() => ['ИС-21', 'ИС-22', 'ИС-23', 'ИС-24', 'ИС-25', 'ИС-26'], []);
   const cabinets = useMemo(() => ['101', '102', '103', '104', '201', '202', '203', '204', '301', '302', '303', '304', '414', '415'], []);
   const teachers = useMemo(() => [
@@ -204,7 +204,7 @@ export default function HomeScreen() {
     });
   }, [searchSlideAnim]);
 
-  // PanResponder для закрытия свайпом вниз
+  // Закрытие поиска свайпом вниз
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
@@ -240,19 +240,15 @@ export default function HomeScreen() {
   // Центрируем камеру на "Обычное расписание" после того, как список готов
   useEffect(() => {
     if (currentPage === 'bells' && bellsListReady && !hasScrolledToInitial.current && bellsFlatListRef.current) {
-      // Используем двойной requestAnimationFrame для гарантии, что FlatList полностью отрендерен
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           if (bellsFlatListRef.current) {
             const screen = Dimensions.get('window').width;
             const cardWidth = screen * 0.52;
-            const itemSize = cardWidth + 12; // карточка + отступ
-            const index = 1; // "Обычное расписание"
-            const padding = 16; // paddingHorizontal из styles.bellsList
+            const itemSize = cardWidth + 12;
+            const index = 1;
+            const padding = 16;
             
-            // Вычисляем offset для центрирования элемента
-            // Позиция начала элемента: padding + itemSize * index
-            // Для центрирования: offset = позиция_начала - (ширина_экрана - ширина_карточки) / 2
             const elementStart = padding + itemSize * index;
             const offset = elementStart - (screen - cardWidth) / 2;
             
@@ -276,13 +272,13 @@ export default function HomeScreen() {
     }).start();
   }, [activeTab, togglePosition]);
 
-  // Обработка кнопки "Назад" на Android
+  // Обработка кнопки "Назад" (только для Android)
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
       // Если поиск открыт - закрываем его
       if (searchOpen) {
         closeSearch();
-        return true; // Предотвращаем стандартное поведение
+        return true;
       }
       
       // Если меню открыто - закрываем его
@@ -299,17 +295,17 @@ export default function HomeScreen() {
             useNativeDriver: true,
           }),
         ]).start(() => setMenuOpen(false));
-        return true; // Предотвращаем стандартное поведение
+        return true;
       }
       
       // Если не на home-page - переключаем на home-page
       if (currentPage !== 'home') {
         setCurrentPage('home');
         setActiveTab('calendar');
-        return true; // Предотвращаем стандартное поведение
+        return true;
       }
       
-      // Если уже на home-page - позволяем стандартное поведение (выход из приложения)
+      // Если уже на home-page - выход из приложения
       return false;
     });
 
@@ -359,7 +355,7 @@ export default function HomeScreen() {
           <Text style={styles.appTitle}>РКСИ Планшетка</Text>
         </TouchableOpacity>
 
-        {/* Менюка и кнопки */}
+        {/* Менюшка и кнопки */}
         <View style={styles.menuItems}>
           <TouchableOpacity
             style={styles.menuItem}
@@ -482,7 +478,7 @@ export default function HomeScreen() {
                       </View>
                     </View>
 
-                    {/* Контент пар */}
+                    {/* Контент пары */}
                     <View style={styles.cardContent}>
                       <View style={styles.titleBar}>
                         <View style={styles.titleBarInner}>
@@ -579,6 +575,7 @@ export default function HomeScreen() {
             <Text style={styles.bellsTitle}>Расписание звонков</Text>
             <FlatList
               ref={bellsFlatListRef}
+              // Данные для расписания звонков (пока демка или нет хз)
               data={[
                 {
                   id: 'short',
@@ -624,7 +621,6 @@ export default function HomeScreen() {
                 return { length: size, offset: size * i, index: i };
               }}
               onScrollToIndexFailed={(info) => {
-                // Обработка ошибки, если индекс не найден
                 const wait = new Promise(resolve => setTimeout(resolve, 500));
                 wait.then(() => {
                   bellsFlatListRef.current?.scrollToIndex({ index: info.index, animated: true });
@@ -831,7 +827,7 @@ export default function HomeScreen() {
                     {
                       translateX: togglePosition.interpolate({
                         inputRange: [0, 1],
-                        outputRange: [0, 48], // 100 (ширина контейнера) - 4 (padding) - 44 (ширина кнопки) - 4 (padding) = 48
+                        outputRange: [0, 48],
                       }),
                     },
                   ],
@@ -867,6 +863,7 @@ export default function HomeScreen() {
   );
 }
 
+// Тут уже CSS пошел
 const styles = StyleSheet.create({
   container: {
     flex: 1,
