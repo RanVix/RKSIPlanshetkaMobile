@@ -4,6 +4,7 @@ import BurgerMenuIcon from '../../assets/BurgerMenu.svg';
 import CabinetIcon from '../../assets/Cabinet.svg';
 import CombinedIcon from '../../assets/Combined.svg';
 import SearchIcon from '../../assets/SearchIcon.svg';
+import ThemeIcon from '../../assets/ThemeIcon.svg';
 import UserIcon from '../../assets/User.svg';
 import BellIcon from '../../assets/WhiteBell.svg';
 import CalendarIcon from '../../assets/calendarik.svg';
@@ -23,7 +24,7 @@ type Lesson = {
 export default function HomeScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'calendar' | 'bell'>('calendar');
-  const [currentPage, setCurrentPage] = useState<'home' | 'subscriptions' | 'bells'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'subscriptions' | 'bells' | 'themes'>('home');
   const [subscriptions, setSubscriptions] = useState<{ id: string; title: string }[]>([]);
   const [bellsListReady, setBellsListReady] = useState(false);
   const slideAnim = useRef(new Animated.Value(-Dimensions.get('window').width * 0.6)).current;
@@ -205,7 +206,13 @@ export default function HomeScreen() {
               Расписание звонков
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              setCurrentPage('themes');
+              toggleMenu();
+            }}
+          >
             <Image source={require('../../assets/ThemeIcon.png')} style={styles.menuIcon} />
             <Text style={styles.menuItemText}>Темы</Text>
           </TouchableOpacity>
@@ -378,7 +385,7 @@ export default function HomeScreen() {
             <Text style={styles.subscriptionsCounter}>{subscriptions.length}/10</Text>
           </View>
         </View>
-        ) : (
+        ) : currentPage === 'bells' ? (
           <View style={styles.bellsContainer}>
             <Text style={styles.bellsTitle}>Расписание звонков</Text>
             <FlatList
@@ -440,6 +447,14 @@ export default function HomeScreen() {
                 }
               }}
             />
+          </View>
+        ) : (
+          <View style={styles.themesContainer}>
+            <Text style={styles.themesTitle}>Темы</Text>
+            <View style={styles.themesEmpty}>
+              <ThemeIcon width={48} height={48} style={styles.themesIcon} />
+              <Text style={styles.themesEmptyText}>Пока в разработке...</Text>
+            </View>
           </View>
         )
       )}
@@ -825,5 +840,31 @@ const styles = StyleSheet.create({
     color: '#F3F4F6',
     fontSize: 18,
     fontWeight: '600',
+  },
+  themesContainer: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
+  themesTitle: {
+    color: '#F3F4F6',
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  themesEmpty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  themesIcon: {
+    opacity: 0.5,
+    marginBottom: 16,
+  },
+  themesEmptyText: {
+    color: '#9CA3AF',
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
