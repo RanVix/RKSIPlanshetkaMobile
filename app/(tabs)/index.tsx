@@ -1,11 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, BackHandler, Dimensions, FlatList, Image, Linking, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, BackHandler, Dimensions, FlatList, Image, Linking, PanResponder, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import BurgerMenuIcon from '../../assets/BurgerMenu.svg';
 import CabinetIcon from '../../assets/Cabinet.svg';
+import CabinetBlackIcon from '../../assets/CabinetBlack.svg';
 import CombinedIcon from '../../assets/Combined.svg';
+import CombinedIconBlackIcon from '../../assets/CombinedBlack.svg';
+import FavoriteIcon from '../../assets/Favorite.svg';
 import SearchIcon from '../../assets/SearchIcon.svg';
 import ThemeIcon from '../../assets/ThemeIcon.svg';
 import UserIcon from '../../assets/User.svg';
+import UserIconBlackIcon from '../../assets/UserIconBlack.svg';
 import BellIcon from '../../assets/WhiteBell.svg';
 import CalendarIcon from '../../assets/calendarik.svg';
 import TrashIcon from '../../assets/trash.svg';
@@ -21,17 +26,31 @@ type Lesson = {
   number: number;
 };
 
+type FavoriteItem = {
+  id: string;
+  type: 'group' | 'cabinet' | 'teacher';
+  name: string;
+};
+
+type SearchTab = 'group' | 'cabinet' | 'teacher';
+
 export default function HomeScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'calendar' | 'bell'>('calendar');
   const [currentPage, setCurrentPage] = useState<'home' | 'subscriptions' | 'bells' | 'themes'>('home');
   const [subscriptions, setSubscriptions] = useState<{ id: string; title: string }[]>([]);
   const [bellsListReady, setBellsListReady] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchTab, setSearchTab] = useState<SearchTab>('group');
+  const [searchText, setSearchText] = useState('');
+  const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const slideAnim = useRef(new Animated.Value(-Dimensions.get('window').width * 0.6)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
+  const searchSlideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
   const bellsFlatListRef = useRef<FlatList>(null);
   const hasScrolledToInitial = useRef(false);
   const togglePosition = useRef(new Animated.Value(0)).current;
+  const searchInputRef = useRef<TextInput>(null);
 
   const toggleMenu = () => {
     if (menuOpen) {
@@ -102,6 +121,114 @@ export default function HomeScreen() {
     []
   );
 
+  // Данные для поиска
+  const groups = useMemo(() => ['ИС-21', 'ИС-22', 'ИС-23', 'ИС-24', 'ИС-25', 'ИС-26'], []);
+  const cabinets = useMemo(() => ['101', '102', '103', '104', '201', '202', '203', '204', '301', '302', '303', '304', '414', '415'], []);
+  const teachers = useMemo(() => [
+    'Сулавко С.Н.',
+    'Швачич Д.С.',
+    'Лебедева М.В',
+    'Иванов И.И.',
+    'Петров П.П.',
+    'Сидоров С.С.',
+    'Козлова К.К.',
+    'Морозов М.М.',
+  ], []);
+
+  // Фильтрация данных по тексту поиска
+  const filteredData = useMemo(() => {
+    const data = searchTab === 'group' ? groups : searchTab === 'cabinet' ? cabinets : teachers;
+    if (!searchText.trim()) {
+      return data;
+    }
+    const lowerSearch = searchText.toLowerCase();
+    return data.filter(item => item.toLowerCase().includes(lowerSearch));
+  }, [searchTab, searchText, groups, cabinets, teachers]);
+
+  // Загрузка избранного из кэша
+  useEffect(() => {
+    const loadFavorites = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('favorites');
+        if (stored) {
+          setFavorites(JSON.parse(stored));
+        }
+      } catch (error) {
+        console.error('Error loading favorites:', error);
+      }
+    };
+    loadFavorites();
+  }, []);
+
+  // Сохранение избранного в кэш
+  const saveFavorites = async (newFavorites: FavoriteItem[]) => {
+    try {
+      await AsyncStorage.setItem('favorites', JSON.stringify(newFavorites));
+      setFavorites(newFavorites);
+    } catch (error) {
+      console.error('Error saving favorites:', error);
+    }
+  };
+
+  // Добавление в избранное
+  const addToFavorites = (type: SearchTab, name: string) => {
+    const id = `${type}-${name}`;
+    const exists = favorites.find(f => f.id === id);
+    if (!exists) {
+      const newFavorites = [...favorites, { id, type, name }];
+      saveFavorites(newFavorites);
+    }
+  };
+
+  // Удаление из избранного
+  const removeFromFavorites = (id: string) => {
+    const newFavorites = favorites.filter(f => f.id !== id);
+    saveFavorites(newFavorites);
+  };
+
+  // Проверка, находится ли элемент в избранном
+  const isFavorite = (type: SearchTab, name: string) => {
+    const id = `${type}-${name}`;
+    return favorites.some(f => f.id === id);
+  };
+
+  // Закрытие поиска
+  const closeSearch = useCallback(() => {
+    Animated.timing(searchSlideAnim, {
+      toValue: Dimensions.get('window').height,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setSearchOpen(false);
+      setSearchText('');
+    });
+  }, [searchSlideAnim]);
+
+  // PanResponder для закрытия свайпом вниз
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return gestureState.dy > 10 && Math.abs(gestureState.dx) < Math.abs(gestureState.dy);
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          searchSlideAnim.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 100) {
+          closeSearch();
+        } else {
+          Animated.spring(searchSlideAnim, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
+
   // Сбрасываем состояние при смене страницы
   useEffect(() => {
     if (currentPage === 'bells') {
@@ -152,6 +279,12 @@ export default function HomeScreen() {
   // Обработка кнопки "Назад" на Android
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      // Если поиск открыт - закрываем его
+      if (searchOpen) {
+        closeSearch();
+        return true; // Предотвращаем стандартное поведение
+      }
+      
       // Если меню открыто - закрываем его
       if (menuOpen) {
         Animated.parallel([
@@ -181,7 +314,7 @@ export default function HomeScreen() {
     });
 
     return () => backHandler.remove();
-  }, [menuOpen, currentPage, slideAnim, overlayOpacity]);
+  }, [menuOpen, currentPage, searchOpen, slideAnim, overlayOpacity, closeSearch]);
 
   return (
     <View style={styles.container}>
@@ -293,14 +426,26 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.searchBox}>
+        <TouchableOpacity
+          style={styles.searchBox}
+          activeOpacity={0.7}
+          onPress={() => {
+            setSearchOpen(true);
+            Animated.timing(searchSlideAnim, {
+              toValue: 0,
+              duration: 300,
+              useNativeDriver: true,
+            }).start();
+          }}
+        >
           <TextInput
-            placeholder="Группа: ИС-21"
-            placeholderTextColor="#FFFF"
+            placeholder="Поиск..."
+            placeholderTextColor="#9CA3AF"
             style={styles.searchInput}
+            editable={false}
           />
           <SearchIcon width={16} height={16} />
-        </View>
+        </TouchableOpacity>
       </View>
 
       {currentPage === 'home' ? (
@@ -503,6 +648,177 @@ export default function HomeScreen() {
         )
       )}
 
+      {/* Поиск - выдвигается снизу */}
+      {searchOpen && (
+        <Animated.View
+          style={[
+            styles.searchOverlay,
+            {
+              transform: [{ translateY: searchSlideAnim }],
+            },
+          ]}
+        >
+          {/* Белая полоска для закрытия */}
+          <TouchableOpacity
+            style={styles.searchHandle}
+            activeOpacity={0.7}
+            onPress={closeSearch}
+            {...panResponder.panHandlers}
+          >
+            <View style={styles.searchHandleBar} />
+          </TouchableOpacity>
+
+          {/* Верхняя панель с бургер меню и поиском */}
+          <View style={styles.searchTopBar}>
+            <View>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={toggleMenu}
+                style={styles.burgerButton}
+              >
+                <BurgerMenuIcon width={18} height={18} />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.searchBox}
+              activeOpacity={1}
+              onPress={() => searchInputRef.current?.focus()}
+            >
+              <TextInput
+                ref={searchInputRef}
+                placeholder="Поиск..."
+                placeholderTextColor="#9CA3AF"
+                style={styles.searchInput}
+                value={searchText}
+                onChangeText={setSearchText}
+              />
+              <SearchIcon width={16} height={16} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Контент поиска */}
+          <View style={styles.searchContent} {...panResponder.panHandlers}>
+            {/* Секция Избранное */}
+            <View style={styles.favoritesSection}>
+              <View style={styles.favoritesHeader}>
+                <FavoriteIcon width={19} height={22} />
+                <Text style={styles.favoritesTitle}>Избранное</Text>
+              </View>
+              <Text style={styles.favoritesDescription}>
+                Чтобы добавить в избранное - зажмите кнопку
+              </Text>
+              {favorites.length > 0 && (
+                <View style={styles.favoritesList}>
+                  {favorites.map((item) => (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={styles.favoriteItem}
+                      onLongPress={() => removeFromFavorites(item.id)}
+                    >
+                      <Text style={styles.favoriteItemText}>{item.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            {/* Секция с переключателем */}
+            <View style={styles.searchSection}>
+              <View style={styles.searchSectionHeader}>
+                <View style={styles.searchSectionTitleRow}>
+                  {searchTab === 'group' && <CombinedIcon width={26} height={26} style={styles.searchSectionIcon} />}
+                  {searchTab === 'cabinet' && <CabinetIcon width={20} height={20} style={styles.searchSectionIcon} />}
+                  {searchTab === 'teacher' && <UserIcon width={20} height={20} style={styles.searchSectionIcon} />}
+                  <Text style={styles.searchSectionTitle}>
+                    {searchTab === 'group' ? 'Группы' : searchTab === 'cabinet' ? 'Кабинеты' : 'Преподаватели'}
+                  </Text>
+                </View>
+                <View style={styles.searchTabSwitcher}>
+                  <TouchableOpacity
+                    style={[
+                      styles.searchTabButton,
+                      styles.searchTabButtonLeft,
+                      searchTab === 'group' && styles.searchTabButtonActive,
+                    ]}
+                    onPress={() => {
+                      setSearchTab('group');
+                      setSearchText('');
+                    }}
+                  >
+                    {searchTab === 'group' ? (
+                      <CombinedIcon width={24} height={24} style={{ marginTop: 6 }} />
+                    ) : (
+                      <CombinedIconBlackIcon width={24} height={24} style={{ marginTop: 6 }} />
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.searchTabButton,
+                      styles.searchTabButtonCenter,
+                      searchTab === 'cabinet' && styles.searchTabButtonActive,
+                    ]}
+                    onPress={() => {
+                      setSearchTab('cabinet');
+                      setSearchText('');
+                    }}
+                  >
+                    {searchTab === 'cabinet' ? (
+                      <CabinetIcon width={20} height={20} />
+                    ) : (
+                      <CabinetBlackIcon width={20} height={20} />
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.searchTabButton,
+                      styles.searchTabButtonRight,
+                      searchTab === 'teacher' && styles.searchTabButtonActive,
+                    ]}
+                    onPress={() => {
+                      setSearchTab('teacher');
+                      setSearchText('');
+                    }}
+                  >
+                    {searchTab === 'teacher' ? (
+                      <UserIcon width={20} height={20} />
+                    ) : (
+                      <UserIconBlackIcon width={20} height={20} />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Список элементов */}
+              <FlatList
+                data={filteredData}
+                keyExtractor={(item, index) => `${searchTab}-${index}`}
+                numColumns={2}
+                columnWrapperStyle={styles.searchListRow}
+                contentContainerStyle={styles.searchList}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.searchItem}
+                    onLongPress={() => {
+                      if (isFavorite(searchTab, item)) {
+                        removeFromFavorites(`${searchTab}-${item}`);
+                      } else {
+                        addToFavorites(searchTab, item);
+                      }
+                    }}
+                  >
+                    <Text style={styles.searchItemText}>{item}</Text>
+                    {isFavorite(searchTab, item) && (
+                      <FavoriteIcon width={16} height={16} style={styles.searchItemFavorite} />
+                    )}
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          </View>
+        </Animated.View>
+      )}
+
       {currentPage === 'home' && (
         /* Снизу смена окон */
         <View style={styles.bottomTabs}>
@@ -580,7 +896,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    zIndex: 998,
+    zIndex: 1001,
   },
   overlayTouchable: {
     flex: 1,
@@ -592,7 +908,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: Dimensions.get('window').width * 0.6,
     backgroundColor: '#191C21',
-    zIndex: 999,
+    zIndex: 1002,
     paddingTop: 60,
     paddingHorizontal: 12,
   },
@@ -927,5 +1243,154 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     fontSize: 16,
     fontWeight: '500',
+  },
+  searchOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#0F1318',
+    zIndex: 1000,
+  },
+  searchHandle: {
+    position: 'absolute',
+    top: 28,
+    left: 0,
+    right: 0,
+    paddingTop: 8,
+    paddingBottom: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  searchTopBar: {
+    paddingHorizontal: 16,
+    paddingTop: 44,
+    paddingBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  searchHandleBar: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#FFFFFF',
+  },
+  searchContent: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  favoritesSection: {
+    marginBottom: 24,
+  },
+  favoritesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  favoritesTitle: {
+    color: '#F3F4F6',
+    fontSize: 24,
+    fontWeight: '700',
+    marginLeft: 12,
+  },
+  favoritesDescription: {
+    color: '#9CA3AF',
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  favoritesList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  favoriteItem: {
+    backgroundColor: '#171C22',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  favoriteItemText: {
+    color: '#F3F4F6',
+    fontSize: 14,
+  },
+  searchSection: {
+    flex: 1,
+  },
+  searchSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  searchSectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  searchSectionIcon: {
+    marginRight: 8,
+    marginTop: 6,
+  },
+  searchSectionTitle: {
+    color: '#F3F4F6',
+    fontSize: 24,
+    fontWeight: '700',
+  },
+  searchTabSwitcher: {
+    flexDirection: 'row',
+  },
+  searchTabButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#D9D9D9',
+  },
+  searchTabButtonLeft: {
+    borderTopLeftRadius: 18,
+    borderBottomLeftRadius: 18,
+    marginRight: 6,
+  },
+  searchTabButtonCenter: {
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  searchTabButtonRight: {
+    borderTopRightRadius: 18,
+    borderBottomRightRadius: 18,
+  },
+  searchTabButtonActive: {
+    backgroundColor: '#506681',
+  },
+  searchList: {
+    paddingBottom: 24,
+  },
+  searchListRow: {
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  searchItem: {
+    flex: 1,
+    backgroundColor: '#171C22',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    marginHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 56,
+    position: 'relative',
+  },
+  searchItemText: {
+    color: '#F3F4F6',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  searchItemFavorite: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
   },
 });
