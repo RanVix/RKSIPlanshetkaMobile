@@ -31,6 +31,7 @@ export default function HomeScreen() {
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const bellsFlatListRef = useRef<FlatList>(null);
   const hasScrolledToInitial = useRef(false);
+  const togglePosition = useRef(new Animated.Value(0)).current;
 
   const toggleMenu = () => {
     if (menuOpen) {
@@ -138,6 +139,15 @@ export default function HomeScreen() {
       });
     }
   }, [currentPage, bellsListReady]);
+
+  // Анимация переключателя при изменении активной вкладки
+  useEffect(() => {
+    Animated.timing(togglePosition, {
+      toValue: activeTab === 'calendar' ? 0 : 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [activeTab, togglePosition]);
 
   // Обработка кнопки "Назад" на Android
   useEffect(() => {
@@ -497,13 +507,25 @@ export default function HomeScreen() {
         /* Снизу смена окон */
         <View style={styles.bottomTabs}>
           <View style={styles.toggleContainer}>
+            <Animated.View
+              style={[
+                styles.toggleBackground,
+                {
+                  transform: [
+                    {
+                      translateX: togglePosition.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 48], // 100 (ширина контейнера) - 4 (padding) - 44 (ширина кнопки) - 4 (padding) = 48
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            />
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => setActiveTab('calendar')}
-              style={[
-                styles.toggleButton,
-                activeTab === 'calendar' && styles.toggleButtonActive,
-              ]}
+              style={styles.toggleButton}
             >
               <CalendarIcon
                 width={20}
@@ -514,10 +536,7 @@ export default function HomeScreen() {
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => setActiveTab('bell')}
-              style={[
-                styles.toggleButton,
-                activeTab === 'bell' && styles.toggleButtonActive,
-              ]}
+              style={styles.toggleButton}
             >
               <BellIcon
                 width={20}
@@ -711,6 +730,16 @@ const styles = StyleSheet.create({
     padding: 4,
     width: 100,
     justifyContent: 'space-between',
+    position: 'relative',
+  },
+  toggleBackground: {
+    position: 'absolute',
+    width: 44,
+    height: 44,
+    borderRadius: 20,
+    backgroundColor: '#3D4A5D',
+    top: 4,
+    left: 4,
   },
   toggleButton: {
     width: 44,
@@ -718,9 +747,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  toggleButtonActive: {
-    backgroundColor: '#3D4A5D',
+    zIndex: 1,
   },
   inactiveIcon: {
     opacity: 0.4,
