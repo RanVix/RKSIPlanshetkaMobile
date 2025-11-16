@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Dimensions, FlatList, Image, Linking, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Animated, BackHandler, Dimensions, FlatList, Image, Linking, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import BurgerMenuIcon from '../../assets/BurgerMenu.svg';
 import CabinetIcon from '../../assets/Cabinet.svg';
 import CombinedIcon from '../../assets/Combined.svg';
@@ -138,6 +138,40 @@ export default function HomeScreen() {
       });
     }
   }, [currentPage, bellsListReady]);
+
+  // Обработка кнопки "Назад" на Android
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      // Если меню открыто - закрываем его
+      if (menuOpen) {
+        Animated.parallel([
+          Animated.timing(slideAnim, {
+            toValue: -Dimensions.get('window').width * 0.6,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.timing(overlayOpacity, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ]).start(() => setMenuOpen(false));
+        return true; // Предотвращаем стандартное поведение
+      }
+      
+      // Если не на home-page - переключаем на home-page
+      if (currentPage !== 'home') {
+        setCurrentPage('home');
+        setActiveTab('calendar');
+        return true; // Предотвращаем стандартное поведение
+      }
+      
+      // Если уже на home-page - позволяем стандартное поведение (выход из приложения)
+      return false;
+    });
+
+    return () => backHandler.remove();
+  }, [menuOpen, currentPage, slideAnim, overlayOpacity]);
 
   return (
     <View style={styles.container}>
