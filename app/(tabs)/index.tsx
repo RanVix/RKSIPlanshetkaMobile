@@ -25,9 +25,11 @@ export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState<'calendar' | 'bell'>('calendar');
   const [currentPage, setCurrentPage] = useState<'home' | 'subscriptions' | 'bells'>('home');
   const [subscriptions, setSubscriptions] = useState<{ id: string; title: string }[]>([]);
+  const [bellsListReady, setBellsListReady] = useState(false);
   const slideAnim = useRef(new Animated.Value(-Dimensions.get('window').width * 0.6)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const bellsFlatListRef = useRef<FlatList>(null);
+  const hasScrolledToInitial = useRef(false);
 
   const toggleMenu = () => {
     if (menuOpen) {
@@ -98,19 +100,43 @@ export default function HomeScreen() {
     []
   );
 
-  // Центрируем камеру на "Обычное расписание" при входе на страницу расписания звонков
+  // Сбрасываем состояние при смене страницы
   useEffect(() => {
-    if (currentPage === 'bells' && bellsFlatListRef.current) {
-      // Используем setTimeout для того, чтобы FlatList успел отрендериться
-      setTimeout(() => {
-        bellsFlatListRef.current?.scrollToIndex({
-          index: 1, // Индекс "Обычное расписание"
-          animated: true,
-          viewPosition: 0.5, // Центрируем элемент
-        });
-      }, 100);
+    if (currentPage === 'bells') {
+      setBellsListReady(false);
+      hasScrolledToInitial.current = false;
     }
   }, [currentPage]);
+
+  // Центрируем камеру на "Обычное расписание" после того, как список готов
+  useEffect(() => {
+    if (currentPage === 'bells' && bellsListReady && !hasScrolledToInitial.current && bellsFlatListRef.current) {
+      // Используем двойной requestAnimationFrame для гарантии, что FlatList полностью отрендерен
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (bellsFlatListRef.current) {
+            const screen = Dimensions.get('window').width;
+            const cardWidth = screen * 0.52;
+            const itemSize = cardWidth + 12; // карточка + отступ
+            const index = 1; // "Обычное расписание"
+            const padding = 16; // paddingHorizontal из styles.bellsList
+            
+            // Вычисляем offset для центрирования элемента
+            // Позиция начала элемента: padding + itemSize * index
+            // Для центрирования: offset = позиция_начала - (ширина_экрана - ширина_карточки) / 2
+            const elementStart = padding + itemSize * index;
+            const offset = elementStart - (screen - cardWidth) / 2;
+            
+            bellsFlatListRef.current.scrollToOffset({
+              offset: Math.max(0, offset),
+              animated: false,
+            });
+            hasScrolledToInitial.current = true;
+          }
+        });
+      });
+    }
+  }, [currentPage, bellsListReady]);
 
   return (
     <View style={styles.container}>
@@ -397,7 +423,6 @@ export default function HomeScreen() {
               }}
               ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
               snapToInterval={Dimensions.get('window').width * 0.52 + 12}
-              initialScrollIndex={1}
               getItemLayout={(_, i) => {
                 const size = Dimensions.get('window').width * 0.52 + 12;
                 return { length: size, offset: size * i, index: i };
@@ -408,6 +433,11 @@ export default function HomeScreen() {
                 wait.then(() => {
                   bellsFlatListRef.current?.scrollToIndex({ index: info.index, animated: true });
                 });
+              }}
+              onLayout={() => {
+                if (currentPage === 'bells' && !bellsListReady) {
+                  setBellsListReady(true);
+                }
               }}
             />
           </View>
