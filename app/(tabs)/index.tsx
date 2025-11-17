@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, BackHandler, Dimensions, FlatList, Image, Linking, PanResponder, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Animated, BackHandler, Dimensions, Easing, FlatList, Image, Linking, PanResponder, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import BurgerMenuIcon from '../../assets/BurgerMenu.svg';
 import CabinetIcon from '../../assets/Cabinet.svg';
 import CabinetBlackIcon from '../../assets/CabinetBlack.svg';
@@ -51,39 +51,56 @@ export default function HomeScreen() {
   const hasScrolledToInitial = useRef(false);
   const togglePosition = useRef(new Animated.Value(0)).current;
   const searchInputRef = useRef<TextInput>(null);
+  const menuAnimating = useRef(false);
 
-  const toggleMenu = () => {
+  const toggleMenu = useCallback(() => {
+    // Блокируем повторные вызовы во время анимации
+    if (menuAnimating.current) {
+      return;
+    }
+
     if (menuOpen) {
       // Закрываем меню
+      menuAnimating.current = true;
       Animated.parallel([
         Animated.timing(slideAnim, {
           toValue: -Dimensions.get('window').width * 0.6,
           duration: 300,
+          easing: Easing.bezier(0.4, 0.0, 0.2, 1),
           useNativeDriver: true,
         }),
         Animated.timing(overlayOpacity, {
           toValue: 0,
           duration: 300,
+          easing: Easing.bezier(0.4, 0.0, 0.2, 1),
           useNativeDriver: true,
         }),
-      ]).start(() => setMenuOpen(false));
+      ]).start(() => {
+        setMenuOpen(false);
+        menuAnimating.current = false;
+      });
     } else {
       // Открываем меню
+      menuAnimating.current = true;
       setMenuOpen(true);
       Animated.parallel([
         Animated.timing(slideAnim, {
           toValue: 0,
           duration: 300,
+          easing: Easing.bezier(0.4, 0.0, 0.2, 1),
           useNativeDriver: true,
         }),
         Animated.timing(overlayOpacity, {
           toValue: 1,
           duration: 300,
+          easing: Easing.bezier(0.4, 0.0, 0.2, 1),
           useNativeDriver: true,
         }),
-      ]).start();
+      ]).start(() => {
+        menuAnimating.current = false;
+      });
     }
-  };
+  }, [menuOpen, slideAnim, overlayOpacity]);
 
   const data: Lesson[] = useMemo(
     () => [
@@ -282,19 +299,8 @@ export default function HomeScreen() {
       }
       
       // Если меню открыто - закрываем его
-      if (menuOpen) {
-        Animated.parallel([
-          Animated.timing(slideAnim, {
-            toValue: -Dimensions.get('window').width * 0.6,
-            duration: 300,
-            useNativeDriver: true,
-          }),
-          Animated.timing(overlayOpacity, {
-            toValue: 0,
-            duration: 300,
-            useNativeDriver: true,
-          }),
-        ]).start(() => setMenuOpen(false));
+      if (menuOpen && !menuAnimating.current) {
+        toggleMenu();
         return true;
       }
       
@@ -310,7 +316,7 @@ export default function HomeScreen() {
     });
 
     return () => backHandler.remove();
-  }, [menuOpen, currentPage, searchOpen, slideAnim, overlayOpacity, closeSearch]);
+  }, [menuOpen, currentPage, searchOpen, toggleMenu, closeSearch]);
 
   return (
     <View style={styles.container}>
@@ -358,6 +364,7 @@ export default function HomeScreen() {
         {/* Менюшка и кнопки */}
         <View style={styles.menuItems}>
           <TouchableOpacity
+            activeOpacity={0.7}
             style={styles.menuItem}
             onPress={() => {
               setCurrentPage('subscriptions');
@@ -367,19 +374,21 @@ export default function HomeScreen() {
             <Image source={require('../../assets/BellIcon.png')} style={styles.menuIcon} />
             <Text style={styles.menuItemText}>Подписки</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            style={styles.menuItem}
+            onPress={() => {
+              setCurrentPage('bells');
+              toggleMenu();
+            }}
+          >
             <Image source={require('../../assets/TimeIcon.png')} style={styles.menuIcon} />
-            <Text
-              style={styles.menuItemText}
-              onPress={() => {
-                setCurrentPage('bells');
-                toggleMenu();
-              }}
-            >
+            <Text style={styles.menuItemText}>
               Расписание звонков
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
+            activeOpacity={0.7}
             style={styles.menuItem}
             onPress={() => {
               setCurrentPage('themes');
@@ -390,6 +399,7 @@ export default function HomeScreen() {
             <Text style={styles.menuItemText}>Темы</Text>
           </TouchableOpacity>
           <TouchableOpacity
+            activeOpacity={0.7}
             style={styles.menuItem}
             onPress={async () => {
               const url = 'https://drive.google.com/drive/folders/1kUYiSAafghhYR0ARyXwPW1HZPpHcFIag?usp=sharing';
@@ -435,8 +445,8 @@ export default function HomeScreen() {
           }}
         >
           <TextInput
-            placeholder="Поиск..."
-            placeholderTextColor="#9CA3AF"
+            placeholder="Группа: ИС-21"
+            placeholderTextColor="#FFFFFF"
             style={styles.searchInput}
             editable={false}
           />
@@ -723,7 +733,13 @@ export default function HomeScreen() {
             <View style={styles.searchSection}>
               <View style={styles.searchSectionHeader}>
                 <View style={styles.searchSectionTitleRow}>
-                  {searchTab === 'group' && <CombinedIcon width={26} height={26} style={styles.searchSectionIcon} />}
+                  {searchTab === 'group' && (
+                    <CombinedIcon
+                      width={26}
+                      height={26}
+                      style={[styles.searchSectionIcon, styles.searchSectionIconGroup]}
+                    />
+                  )}
                   {searchTab === 'cabinet' && <CabinetIcon width={20} height={20} style={styles.searchSectionIcon} />}
                   {searchTab === 'teacher' && <UserIcon width={20} height={20} style={styles.searchSectionIcon} />}
                   <Text style={styles.searchSectionTitle}>
@@ -990,9 +1006,9 @@ const styles = StyleSheet.create({
   cardRow: { flexDirection: 'row', alignItems: 'flex-start' },
   timeCol: { width: 64, alignItems: 'flex-start' },
   startTime: { color: '#F3F4F6', fontSize: 20, fontWeight: '600' },
-  endTime: { color: '#9CA3AF', fontSize: 13, marginTop: 4 },
+  endTime: { color: '#9CA3AF', fontSize: 15, marginTop: 4 },
   lessonNumberWrap: {
-    marginTop: 12,
+    marginTop: 32,
     height: 28,
     width: 28,
     borderRadius: 14,
@@ -1328,7 +1344,10 @@ const styles = StyleSheet.create({
   },
   searchSectionIcon: {
     marginRight: 8,
-    marginTop: 6,
+    marginTop: 2,
+  },
+  searchSectionIconGroup: {
+    marginTop: 10,
   },
   searchSectionTitle: {
     color: '#F3F4F6',
