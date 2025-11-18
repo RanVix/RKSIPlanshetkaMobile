@@ -973,7 +973,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   menuFooter: {
-    paddingBottom: 20,
+    paddingBottom: 28,
     alignItems: 'center',
   },
   footerText: {
