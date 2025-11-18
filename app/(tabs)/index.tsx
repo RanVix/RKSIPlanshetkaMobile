@@ -348,6 +348,9 @@ export default function HomeScreen() {
           activeOpacity={0.7}
           style={styles.menuHeader}
           onPress={() => {
+          if (searchOpen) {
+            closeSearch();
+          }
             setCurrentPage('home');
             setActiveTab('calendar');
             toggleMenu();
@@ -367,6 +370,9 @@ export default function HomeScreen() {
             activeOpacity={0.7}
             style={styles.menuItem}
             onPress={() => {
+              if (searchOpen) {
+                closeSearch();
+              }
               setCurrentPage('subscriptions');
               toggleMenu();
             }}
@@ -378,6 +384,9 @@ export default function HomeScreen() {
             activeOpacity={0.7}
             style={styles.menuItem}
             onPress={() => {
+              if (searchOpen) {
+                closeSearch();
+              }
               setCurrentPage('bells');
               toggleMenu();
             }}
@@ -391,6 +400,9 @@ export default function HomeScreen() {
             activeOpacity={0.7}
             style={styles.menuItem}
             onPress={() => {
+              if (searchOpen) {
+                closeSearch();
+              }
               setCurrentPage('themes');
               toggleMenu();
             }}
@@ -1050,6 +1062,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     paddingBottom: 32,
+    marginBottom: 12,
     backgroundColor: '#0F1318',
   },
   toggleContainer: {
@@ -1168,7 +1181,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 24,
+    bottom: 34,
     alignItems: 'center',
     justifyContent: 'center',
   },
