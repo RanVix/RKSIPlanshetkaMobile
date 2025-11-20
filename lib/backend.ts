@@ -4,6 +4,7 @@ import { http } from './http'
 const GROUPS_CACHE_KEY = '@cache/groups'
 const TEACHERS_CACHE_KEY = '@cache/teachers'
 const CABINETS_CACHE_KEY = '@cache/cabinets'
+type SubscriptionType = 'cab' | 'group' | 'prepod'
 const extractGroupParts = (value: string) => {
   const letters = value.replace(/\d+/g, '').trim()
   const numbers = (value.match(/\d+/g) ?? []).map(Number)
@@ -232,6 +233,26 @@ export const getCabinets = async () => {
       return cached
     }
     throw error
+  }
+}
+
+type SubscribePayload = {
+  token: string
+  tracked_name: string
+  tracked_type: SubscriptionType
+}
+
+type SubscribeResponse = {
+  success: boolean
+  message: string
+}
+
+export const subscribe = async (payload: SubscribePayload) => {
+  try {
+    const response = await http.post<SubscribeResponse>('/subscribes/add', payload)
+    return ensureSuccess(response)
+  } catch (error) {
+    normalizeAxiosError(error)
   }
 }
 

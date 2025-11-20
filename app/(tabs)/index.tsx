@@ -5,10 +5,12 @@ import {
   getCachedTeachers,
   getGroups,
   getTeachers,
+  subscribe,
 } from '@/lib/backend';
+import { getCachedDeviceToken, getDeviceToken } from '@/lib/deviceTokenCache';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, BackHandler, Dimensions, Easing, FlatList, Image, Linking, PanResponder, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Animated, BackHandler, Dimensions, Easing, FlatList, Image, Linking, PanResponder, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import BurgerMenuIcon from '../../assets/BurgerMenu.svg';
 import CabinetIcon from '../../assets/Cabinet.svg';
 import CabinetBlackIcon from '../../assets/CabinetBlack.svg';
@@ -42,15 +44,30 @@ type FavoriteItem = {
 
 type SearchTab = 'group' | 'cabinet' | 'teacher';
 
+const mapSearchTabToSubscriptionType = (type: SearchTab): 'cab' | 'group' | 'prepod' => {
+  if (type === 'cabinet') {
+    return 'cab';
+  }
+  if (type === 'teacher') {
+    return 'prepod';
+  }
+  return 'group';
+};
+type SubscriptionItem = { id: string; title: string; type: SearchTab };
+
 export default function HomeScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'calendar' | 'bell'>('calendar');
   const [currentPage, setCurrentPage] = useState<'home' | 'subscriptions' | 'bells' | 'themes'>('home');
-  const [subscriptions, setSubscriptions] = useState<{ id: string; title: string }[]>([]);
+  const [subscriptions, setSubscriptions] = useState<SubscriptionItem[]>([]);
   const [bellsListReady, setBellsListReady] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTab, setSearchTab] = useState<SearchTab>('group');
   const [searchText, setSearchText] = useState('');
+  const [subscriptionPickerOpen, setSubscriptionPickerOpen] = useState(false);
+  const [subscriptionPickerTab, setSubscriptionPickerTab] = useState<SearchTab>('group');
+  const [subscriptionPickerSearch, setSubscriptionPickerSearch] = useState('');
+  const [subscriptionCooldown, setSubscriptionCooldown] = useState(0);
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [groups, setGroups] = useState<string[]>([]);
   const [cabinets, setCabinets] = useState<string[]>([]);
@@ -58,6 +75,7 @@ export default function HomeScreen() {
   const slideAnim = useRef(new Animated.Value(-Dimensions.get('window').width * 0.6)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const searchSlideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
+  const subscriptionPickerAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
   const bellsFlatListRef = useRef<FlatList>(null);
   const hasScrolledToInitial = useRef(false);
   const togglePosition = useRef(new Animated.Value(0)).current;
@@ -236,6 +254,16 @@ export default function HomeScreen() {
     return data.filter(item => item.toLowerCase().includes(lowerSearch));
   }, [searchTab, searchText, groups, cabinets, teachers]);
 
+  const subscriptionPickerFilteredData = useMemo(() => {
+    const data = subscriptionPickerTab === 'group' ? groups : subscriptionPickerTab === 'cabinet' ? cabinets : teachers;
+    if (!subscriptionPickerSearch.trim()) {
+      return data;
+    }
+    const lowerSearch = subscriptionPickerSearch.toLowerCase();
+    return data.filter(item => item.toLowerCase().includes(lowerSearch));
+  }, [subscriptionPickerTab, subscriptionPickerSearch, groups, cabinets, teachers]);
+  const subscriptionLimitReached = subscriptions.length >= 10;
+
   // Загрузка избранного из кэша
   useEffect(() => {
     const loadFavorites = async () => {
@@ -283,6 +311,71 @@ export default function HomeScreen() {
     return favorites.some(f => f.id === id);
   };
 
+  const isSubscribed = useCallback(
+    (type: SearchTab, title: string) => subscriptions.some(subscription => subscription.type === type && subscription.title === title),
+    [subscriptions]
+  );
+
+  const handleAddSubscription = useCallback(
+    async (type: SearchTab, title: string) => {
+      if (subscriptionCooldown > 0) {
+        return;
+      }
+
+      let added = false;
+      setSubscriptions(prev => {
+        if (prev.length >= 10) {
+          return prev;
+        }
+        if (prev.some(subscription => subscription.type === type && subscription.title === title)) {
+          return prev;
+        }
+        added = true;
+        const id = `${type}-${title}`;
+        const newSubscription = { id, type, title };
+        return [...prev, newSubscription];
+      });
+
+      if (!added) {
+        return;
+      }
+
+      setSubscriptionCooldown(5);
+
+      try {
+        let token = await getCachedDeviceToken();
+        if (!token) {
+          if (Platform.OS === 'web') {
+            token = `web-${Date.now()}`;
+          } else {
+            try {
+              token = await getDeviceToken();
+            } catch (error) {
+              console.error('Failed to obtain device token', error);
+              Alert.alert('Ошибка', 'Не удалось получить токен устройства для подписки.');
+              return;
+            }
+          }
+        }
+        if (!token) {
+          Alert.alert('Ошибка', 'Токен устройства недоступен. Попробуйте позже.');
+          return;
+        }
+        const response = await subscribe({
+          token,
+          tracked_name: title,
+          tracked_type: mapSearchTabToSubscriptionType(type),
+        });
+        if (!response?.success) {
+          console.warn('Backend rejected subscription:', response?.message);
+        }
+      } catch (error) {
+        console.error('Failed to send subscription to backend', error);
+      }
+    },
+    [subscriptionCooldown]
+  );
+
   // Закрытие поиска
   const closeSearch = useCallback(() => {
     Animated.timing(searchSlideAnim, {
@@ -294,6 +387,26 @@ export default function HomeScreen() {
       setSearchText('');
     });
   }, [searchSlideAnim]);
+
+  const openSubscriptionPicker = useCallback(() => {
+    setSubscriptionPickerOpen(true);
+    Animated.timing(subscriptionPickerAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [subscriptionPickerAnim]);
+
+  const closeSubscriptionPicker = useCallback(() => {
+    Animated.timing(subscriptionPickerAnim, {
+      toValue: Dimensions.get('window').height,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setSubscriptionPickerOpen(false);
+      setSubscriptionPickerSearch('');
+    });
+  }, [subscriptionPickerAnim]);
 
   // Закрытие поиска свайпом вниз
   const panResponder = useRef(
@@ -320,6 +433,30 @@ export default function HomeScreen() {
     })
   ).current;
 
+  const subscriptionPickerPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return gestureState.dy > 10 && Math.abs(gestureState.dx) < Math.abs(gestureState.dy);
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          subscriptionPickerAnim.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 100) {
+          closeSubscriptionPicker();
+        } else {
+          Animated.spring(subscriptionPickerAnim, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
+
   // Сбрасываем состояние при смене страницы
   useEffect(() => {
     if (currentPage === 'bells') {
@@ -327,6 +464,24 @@ export default function HomeScreen() {
       hasScrolledToInitial.current = false;
     }
   }, [currentPage]);
+
+  useEffect(() => {
+    if (currentPage !== 'subscriptions' && subscriptionPickerOpen) {
+      closeSubscriptionPicker();
+    }
+  }, [currentPage, subscriptionPickerOpen, closeSubscriptionPicker]);
+
+  useEffect(() => {
+    if (subscriptionCooldown <= 0) {
+      return undefined;
+    }
+
+    const timeout = setTimeout(() => {
+      setSubscriptionCooldown(prev => Math.max(prev - 1, 0));
+    }, 1000);
+
+    return () => clearTimeout(timeout);
+  }, [subscriptionCooldown]);
 
   // Центрируем камеру на "Обычное расписание" после того, как список готов
   useEffect(() => {
@@ -367,6 +522,10 @@ export default function HomeScreen() {
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
       // Если поиск открыт - закрываем его
+      if (subscriptionPickerOpen) {
+        closeSubscriptionPicker();
+        return true;
+      }
       if (searchOpen) {
         closeSearch();
         return true;
@@ -390,7 +549,7 @@ export default function HomeScreen() {
     });
 
     return () => backHandler.remove();
-  }, [menuOpen, currentPage, searchOpen, toggleMenu, closeSearch]);
+  }, [menuOpen, currentPage, searchOpen, toggleMenu, closeSearch, subscriptionPickerOpen, closeSubscriptionPicker]);
 
   return (
     <View style={styles.container}>
@@ -631,7 +790,7 @@ export default function HomeScreen() {
             )}
             renderItem={({ item }) => (
               <View style={styles.subscriptionCard}>
-                <Text style={styles.subscriptionTitle}>{item.title}</Text>
+                <Text style={styles.subscriptionTitle} numberOfLines={1}>{item.title}</Text>
                 <TouchableOpacity
                   style={styles.subscriptionDelete}
                   onPress={() => setSubscriptions((prev) => prev.filter((s) => s.id !== item.id))}
@@ -646,20 +805,21 @@ export default function HomeScreen() {
             activeOpacity={0.7}
             style={[
               styles.fabAdd,
-              subscriptions.length >= 10 && styles.fabAddDisabled,
+              subscriptionLimitReached && !subscriptionPickerOpen && styles.fabAddDisabled,
             ]}
             onPress={() => {
-              if (subscriptions.length >= 10) return;
-              const samples = ['ИС-21', 'Сулавко С.Н.'];
-              const next = samples[subscriptions.length % samples.length];
-              setSubscriptions((prev) => [
-                ...prev,
-                { id: `${Date.now()}`, title: next },
-              ]);
+              if (subscriptionPickerOpen) {
+                closeSubscriptionPicker();
+                return;
+              }
+              if (subscriptionLimitReached) {
+                return;
+              }
+              openSubscriptionPicker();
             }}
-            disabled={subscriptions.length >= 10}
+            disabled={subscriptionLimitReached && !subscriptionPickerOpen}
           >
-            <Text style={styles.fabAddText}>+</Text>
+            <Text style={styles.fabAddText}>{subscriptionPickerOpen ? '−' : '+'}</Text>
           </TouchableOpacity>
 
           <View style={styles.subscriptionsFooter}>
@@ -914,6 +1074,143 @@ export default function HomeScreen() {
               />
             </View>
           </View>
+        </Animated.View>
+      )}
+
+      {subscriptionPickerOpen && currentPage === 'subscriptions' && (
+        <Animated.View
+          style={[
+            styles.subscriptionPickerOverlay,
+            {
+              transform: [{ translateY: subscriptionPickerAnim }],
+            },
+          ]}
+          {...subscriptionPickerPanResponder.panHandlers}
+        >
+          <TouchableOpacity
+            style={styles.subscriptionPickerHandle}
+            activeOpacity={0.7}
+            onPress={closeSubscriptionPicker}
+            {...subscriptionPickerPanResponder.panHandlers}
+          >
+            <View style={styles.subscriptionPickerHandleBar} />
+          </TouchableOpacity>
+
+          <View style={styles.subscriptionPickerTop}>
+            <Text style={styles.subscriptionPickerTitle}>Добавить подписку</Text>
+            <Text style={styles.subscriptionPickerCounter}>{subscriptions.length}/10</Text>
+          </View>
+
+          <View style={styles.subscriptionPickerSearchBox}>
+            <TextInput
+              placeholder="Поиск..."
+              placeholderTextColor="#9CA3AF"
+              style={styles.subscriptionPickerSearchInput}
+              value={subscriptionPickerSearch}
+              onChangeText={setSubscriptionPickerSearch}
+            />
+          </View>
+
+          {subscriptionCooldown > 0 && (
+            <View style={styles.subscriptionPickerCooldown}>
+              <Text style={styles.subscriptionPickerCooldownText}>
+                Подождите ещё {subscriptionCooldown} c перед следующим добавлением
+              </Text>
+            </View>
+          )}
+
+          <View style={styles.subscriptionPickerTabRow}>
+            <View style={styles.searchTabSwitcher}>
+              <TouchableOpacity
+                style={[
+                  styles.searchTabButton,
+                  styles.searchTabButtonLeft,
+                  subscriptionPickerTab === 'group' && styles.searchTabButtonActive,
+                ]}
+                onPress={() => {
+                  setSubscriptionPickerTab('group');
+                  setSubscriptionPickerSearch('');
+                }}
+              >
+                {subscriptionPickerTab === 'group' ? (
+                  <CombinedIcon width={24} height={24} style={{ marginTop: 6 }} />
+                ) : (
+                  <CombinedIconBlackIcon width={24} height={24} style={{ marginTop: 6 }} />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.searchTabButton,
+                  styles.searchTabButtonCenter,
+                  subscriptionPickerTab === 'cabinet' && styles.searchTabButtonActive,
+                ]}
+                onPress={() => {
+                  setSubscriptionPickerTab('cabinet');
+                  setSubscriptionPickerSearch('');
+                }}
+              >
+                {subscriptionPickerTab === 'cabinet' ? (
+                  <CabinetIcon width={20} height={20} />
+                ) : (
+                  <CabinetBlackIcon width={20} height={20} />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.searchTabButton,
+                  styles.searchTabButtonRight,
+                  subscriptionPickerTab === 'teacher' && styles.searchTabButtonActive,
+                ]}
+                onPress={() => {
+                  setSubscriptionPickerTab('teacher');
+                  setSubscriptionPickerSearch('');
+                }}
+              >
+                {subscriptionPickerTab === 'teacher' ? (
+                  <UserIcon width={20} height={20} />
+                ) : (
+                  <UserIconBlackIcon width={20} height={20} />
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <FlatList
+            data={subscriptionPickerFilteredData}
+            keyExtractor={(item, index) => `${subscriptionPickerTab}-${item}-${index}`}
+            numColumns={2}
+            columnWrapperStyle={styles.subscriptionPickerListRow}
+            contentContainerStyle={styles.subscriptionPickerList}
+            ListEmptyComponent={(
+              <View style={styles.subscriptionPickerEmpty}>
+                <Text style={styles.subscriptionPickerEmptyText}>Ничего не нашлось</Text>
+              </View>
+            )}
+            renderItem={({ item }) => {
+              const selected = isSubscribed(subscriptionPickerTab, item);
+              const disabled = (!selected && subscriptionLimitReached) || selected;
+
+              return (
+                <TouchableOpacity
+                  style={[
+                    styles.subscriptionPickerItem,
+                    selected && styles.subscriptionPickerItemSelected,
+                    !selected && subscriptionLimitReached && styles.subscriptionPickerItemDisabled,
+                  ]}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    if (!selected && !subscriptionLimitReached) {
+                      handleAddSubscription(subscriptionPickerTab, item);
+                    }
+                  }}
+                  disabled={disabled}
+                >
+                  <Text style={styles.subscriptionPickerItemText}>{item}</Text>
+                  {selected && <Text style={styles.subscriptionPickerItemStatus}>В подписках</Text>}
+                </TouchableOpacity>
+              );
+            }}
+          />
         </Animated.View>
       )}
 
@@ -1204,23 +1501,26 @@ const styles = StyleSheet.create({
   },
   subscriptionsList: {
     paddingBottom: 120,
-    alignItems: 'center',
   },
   subscriptionCard: {
     width: '100%',
-    borderRadius: 12,
+    borderRadius: 16,
     backgroundColor: '#171C22',
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    marginBottom: 10,
+    paddingVertical: 20,
+    paddingHorizontal: 18,
+    marginBottom: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    minHeight: 76,
+    alignSelf: 'stretch',
   },
   subscriptionTitle: {
+    flex: 1,
     color: '#F3F4F6',
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 18,
+    fontWeight: '600',
+    marginRight: 12,
   },
   subscriptionDelete: {
     height: 28,
@@ -1249,7 +1549,8 @@ const styles = StyleSheet.create({
   fabAddText: {
     color: '#F3F4F6',
     fontSize: 28,
-    marginTop: -2,
+    lineHeight: 32,
+    marginTop: -4,
   },
   subscriptionsFooter: {
     position: 'absolute',
@@ -1496,5 +1797,116 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
+  },
+  subscriptionPickerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#0F1318',
+    zIndex: 1000,
+    paddingHorizontal: 16,
+    paddingTop: 44,
+  },
+  subscriptionPickerHandle: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  subscriptionPickerHandleBar: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#FFFFFF',
+  },
+  subscriptionPickerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  subscriptionPickerTitle: {
+    color: '#F3F4F6',
+    fontSize: 24,
+    fontWeight: '700',
+  },
+  subscriptionPickerCounter: {
+    color: '#9CA3AF',
+    fontSize: 14,
+  },
+  subscriptionPickerSearchBox: {
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#1B2129',
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  subscriptionPickerSearchInput: {
+    flex: 1,
+    color: '#F3F4F6',
+  },
+  subscriptionPickerCooldown: {
+    marginTop: 12,
+    backgroundColor: '#1F2531',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  subscriptionPickerCooldownText: {
+    color: '#F3F4F6',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  subscriptionPickerTabRow: {
+    marginTop: 16,
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  subscriptionPickerList: {
+    paddingBottom: 48,
+  },
+  subscriptionPickerListRow: {
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  subscriptionPickerItem: {
+    flex: 1,
+    backgroundColor: '#171C22',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    marginHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 56,
+  },
+  subscriptionPickerItemSelected: {
+    borderWidth: 1,
+    borderColor: '#506681',
+  },
+  subscriptionPickerItemDisabled: {
+    opacity: 0.4,
+  },
+  subscriptionPickerItemText: {
+    color: '#F3F4F6',
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  subscriptionPickerItemStatus: {
+    marginTop: 6,
+    color: '#9CA3AF',
+    fontSize: 12,
+  },
+  subscriptionPickerEmpty: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  subscriptionPickerEmptyText: {
+    color: '#9CA3AF',
+    fontSize: 14,
   },
 });
