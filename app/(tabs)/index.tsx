@@ -1,3 +1,11 @@
+import {
+  getCabinets,
+  getCachedCabinets,
+  getCachedGroups,
+  getCachedTeachers,
+  getGroups,
+  getTeachers,
+} from '@/lib/backend';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, BackHandler, Dimensions, Easing, FlatList, Image, Linking, PanResponder, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -44,6 +52,9 @@ export default function HomeScreen() {
   const [searchTab, setSearchTab] = useState<SearchTab>('group');
   const [searchText, setSearchText] = useState('');
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
+  const [groups, setGroups] = useState<string[]>([]);
+  const [cabinets, setCabinets] = useState<string[]>([]);
+  const [teachers, setTeachers] = useState<string[]>([]);
   const slideAnim = useRef(new Animated.Value(-Dimensions.get('window').width * 0.6)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const searchSlideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
@@ -52,6 +63,32 @@ export default function HomeScreen() {
   const togglePosition = useRef(new Animated.Value(0)).current;
   const searchInputRef = useRef<TextInput>(null);
   const menuAnimating = useRef(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadGroups = async () => {
+      try {
+        const cached = await getCachedGroups();
+        if (cached && isMounted) {
+          setGroups(cached);
+        }
+
+        const fresh = await getGroups();
+        if (isMounted) {
+          setGroups(fresh);
+        }
+      } catch (error) {
+        console.error('Failed to load groups list:', error);
+      }
+    };
+
+    loadGroups();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const toggleMenu = useCallback(() => {
     // Блокируем повторные вызовы во время анимации
@@ -138,19 +175,56 @@ export default function HomeScreen() {
     []
   );
 
-  // Данные для поиска (пока демка)
-  const groups = useMemo(() => ['ИС-21', 'ИС-22', 'ИС-23', 'ИС-24', 'ИС-25', 'ИС-26'], []);
-  const cabinets = useMemo(() => ['101', '102', '103', '104', '201', '202', '203', '204', '301', '302', '303', '304', '414', '415'], []);
-  const teachers = useMemo(() => [
-    'Сулавко С.Н.',
-    'Швачич Д.С.',
-    'Лебедева М.В',
-    'Иванов И.И.',
-    'Петров П.П.',
-    'Сидоров С.С.',
-    'Козлова К.К.',
-    'Морозов М.М.',
-  ], []);
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadCabinets = async () => {
+      try {
+        const cached = await getCachedCabinets();
+        if (cached && isMounted) {
+          setCabinets(cached);
+        }
+
+        const fresh = await getCabinets();
+        if (isMounted) {
+          setCabinets(fresh);
+        }
+      } catch (error) {
+        console.error('Failed to load cabinets list:', error);
+      }
+    };
+
+    loadCabinets();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadTeachers = async () => {
+      try {
+        const cached = await getCachedTeachers();
+        if (cached && isMounted) {
+          setTeachers(cached);
+        }
+
+        const fresh = await getTeachers();
+        if (isMounted) {
+          setTeachers(fresh);
+        }
+      } catch (error) {
+        console.error('Failed to load teachers list:', error);
+      }
+    };
+
+    loadTeachers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Фильтрация данных по тексту поиска
   const filteredData = useMemo(() => {
@@ -1416,6 +1490,7 @@ const styles = StyleSheet.create({
     color: '#F3F4F6',
     fontSize: 16,
     fontWeight: '500',
+    textAlign: 'center',
   },
   searchItemFavorite: {
     position: 'absolute',
