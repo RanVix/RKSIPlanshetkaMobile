@@ -4,6 +4,7 @@ import {
   getCachedGroups,
   getCachedTeachers,
   getGroups,
+  getSubscribers,
   getTeachers,
   subscribe,
 } from '@/lib/backend';
@@ -36,6 +37,8 @@ type Lesson = {
   number: number;
 };
 
+const WEB_DEVICE_TOKEN_KEY = '@cache/web-device-token';
+
 type FavoriteItem = {
   id: string;
   type: 'group' | 'cabinet' | 'teacher';
@@ -53,7 +56,7 @@ const mapSearchTabToSubscriptionType = (type: SearchTab): 'cab' | 'group' | 'pre
   }
   return 'group';
 };
-type SubscriptionItem = { id: string; title: string; type: SearchTab };
+type SubscriptionItem = { id: string; title: string; type?: SearchTab };
 
 export default function HomeScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -107,6 +110,51 @@ export default function HomeScreen() {
       isMounted = false;
     };
   }, []);
+
+  const getWebDeviceToken = useCallback(async () => {
+    try {
+      const cached = await AsyncStorage.getItem(WEB_DEVICE_TOKEN_KEY);
+      if (cached) {
+        return cached;
+      }
+      const fresh = `web-${Date.now()}`;
+      await AsyncStorage.setItem(WEB_DEVICE_TOKEN_KEY, fresh);
+      return fresh;
+    } catch (error) {
+      console.error('Failed to cache web device token', error);
+      return `web-${Date.now()}`;
+    }
+  }, []);
+
+  const loadActiveSubscriptions = useCallback(async () => {
+    try {
+      let token = await getCachedDeviceToken();
+      if (!token && Platform.OS === 'web') {
+        token = await getWebDeviceToken();
+      }
+      if (!token) {
+        return;
+      }
+      const activeSubscriptions = await getSubscribers(token);
+      if (!activeSubscriptions) {
+        return;
+      }
+      setSubscriptions(prev => {
+        const preservedLocal = prev.filter(subscription => !subscription.id.startsWith('remote-'));
+        const remoteItems = activeSubscriptions.map(title => ({
+          id: `remote-${title}`,
+          title,
+        }));
+        return [...remoteItems, ...preservedLocal];
+      });
+    } catch (error) {
+      console.error('Failed to load active subscriptions from backend', error);
+    }
+  }, [getWebDeviceToken]);
+
+  useEffect(() => {
+    loadActiveSubscriptions();
+  }, [loadActiveSubscriptions]);
 
   const toggleMenu = useCallback(() => {
     // Блокируем повторные вызовы во время анимации
@@ -312,7 +360,12 @@ export default function HomeScreen() {
   };
 
   const isSubscribed = useCallback(
-    (type: SearchTab, title: string) => subscriptions.some(subscription => subscription.type === type && subscription.title === title),
+    (type: SearchTab, title: string) =>
+      subscriptions.some(
+        subscription =>
+          subscription.title === title &&
+          (subscription.type ? subscription.type === type : true)
+      ),
     [subscriptions]
   );
 
@@ -327,7 +380,12 @@ export default function HomeScreen() {
         if (prev.length >= 10) {
           return prev;
         }
-        if (prev.some(subscription => subscription.type === type && subscription.title === title)) {
+        const alreadyExists = prev.some(
+          subscription =>
+            subscription.title === title &&
+            (subscription.type ? subscription.type === type : true)
+        );
+        if (alreadyExists) {
           return prev;
         }
         added = true;
@@ -346,7 +404,7 @@ export default function HomeScreen() {
         let token = await getCachedDeviceToken();
         if (!token) {
           if (Platform.OS === 'web') {
-            token = `web-${Date.now()}`;
+            token = await getWebDeviceToken();
           } else {
             try {
               token = await getDeviceToken();

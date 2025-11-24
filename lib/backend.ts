@@ -247,6 +247,15 @@ type SubscribeResponse = {
   message: string
 }
 
+export const getSubscribers = async (token: string) => {
+  try {
+    const response = await http.get<string[]>(`/subscribes/${encodeURIComponent(token)}`)
+    return ensureSuccess(response)
+  } catch (error) {
+    normalizeAxiosError(error)
+  }
+}
+
 export const subscribe = async (payload: SubscribePayload) => {
   try {
     const response = await http.post<SubscribeResponse>('/subscribes/add', payload)
@@ -255,4 +264,3 @@ export const subscribe = async (payload: SubscribePayload) => {
     normalizeAxiosError(error)
   }
 }
-
