@@ -54,4 +54,3 @@ export const getDeviceToken = async (forceRefresh = false) => {
 
   return token
 }
-

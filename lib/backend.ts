@@ -247,6 +247,17 @@ type SubscribeResponse = {
   message: string
 }
 
+export const deleteSubscription = async (token: string, name: string) => {
+  try {
+    const response = await http.delete<SubscribeResponse>(
+      `/subscribes/${encodeURIComponent(token)}/${encodeURIComponent(name)}`
+    )
+    return ensureSuccess(response)
+  } catch (error) {
+    normalizeAxiosError(error)
+  }
+}
+
 export const getSubscribers = async (token: string) => {
   try {
     const response = await http.get<string[]>(`/subscribes/${encodeURIComponent(token)}`)

@@ -1,4 +1,5 @@
 import {
+  deleteSubscription,
   getCabinets,
   getCachedCabinets,
   getCachedGroups,
@@ -431,7 +432,41 @@ export default function HomeScreen() {
         console.error('Failed to send subscription to backend', error);
       }
     },
-    [subscriptionCooldown]
+    [subscriptionCooldown, getWebDeviceToken]
+  );
+
+  const handleRemoveSubscription = useCallback(
+    async (subscription: SubscriptionItem) => {
+      setSubscriptions(prev => prev.filter(s => s.id !== subscription.id));
+
+      try {
+        let token = await getCachedDeviceToken();
+        if (!token) {
+          if (Platform.OS === 'web') {
+            token = await getWebDeviceToken();
+          } else {
+            try {
+              token = await getDeviceToken();
+            } catch (error) {
+              console.error('Failed to obtain device token for unsubscribe', error);
+              Alert.alert('Ошибка', 'Не удалось получить токен устройства для удаления подписки.');
+              return;
+            }
+          }
+        }
+        if (!token) {
+          console.warn('Device token is unavailable while removing subscription');
+          return;
+        }
+        const response = await deleteSubscription(token, subscription.title);
+        if (!response?.success) {
+          console.warn('Backend rejected subscription removal:', response?.message);
+        }
+      } catch (error) {
+        console.error('Failed to delete subscription on backend', error);
+      }
+    },
+    [getWebDeviceToken]
   );
 
   // Закрытие поиска
@@ -851,7 +886,7 @@ export default function HomeScreen() {
                 <Text style={styles.subscriptionTitle} numberOfLines={1}>{item.title}</Text>
                 <TouchableOpacity
                   style={styles.subscriptionDelete}
-                  onPress={() => setSubscriptions((prev) => prev.filter((s) => s.id !== item.id))}
+                onPress={() => handleRemoveSubscription(item)}
                 >
                   <TrashIcon width={18} height={18} />
                 </TouchableOpacity>
