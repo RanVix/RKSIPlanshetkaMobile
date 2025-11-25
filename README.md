@@ -1,50 +1,46 @@
-# Welcome to your Expo app 👋
+# 📋 РКСИ Планшетка
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**Удобное приложение для просмотра расписания с планшетки и сайта РКСИ**
 
-## Get started
+![Banner](.github/banner.png)
 
-1. Install dependencies
+## 📥 Скачать
 
-   ```bash
-   npm install
-   ```
+Выберите удобный для вас способ скачивания:
 
-2. Start the app
+[<img src=".github/github.png" alt="Скачать с GitHub" height="70" align="center">](https://github.com/RanVix/RKSIPlanshetkaMobile/releases/latest/download/) 
+[<img src=".github/rustore.png" alt="Скачать с RuStore" height="70" align="center">](https://www.rustore.ru/catalog/app/)
 
-   ```bash
-   npx start
-   ```
+> **Примечание:** Приложение в RuStore появится в финальном релизе
 
-In the output, you'll find options to open the app in a
+## 📸 Скриншоты
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+|  <img src=".github/Main.png" height="700">  |    <img src=".github/Search.png" height="700">     | <img src=".github/Subscribes.png" height="700"> |
+|:-------------------------------------------:|:--------------------------------------------------:|:-----------------------------------------------:|
+| <img src=".github/Themes.png" height="700"> | <img src=".github/Notifications.png" height="700"> | 
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
-## Get a fresh project
+## 📜 Задачи
 
-When you're ready, run:
+- [x] **База**
+  - [x] Дизайн
+  - [x] Backend
+  - [x] Frontend
+- [x] **Основной функционал**
+  - [x] Группы, кабинеты, преподаватели
+  - [x] Подписки
+  - [x] Отображение пар
+  - [x] Кеширование
+- [ ] **Beta-релиз**  <-- *вы сейчас тут!*
+  - [ ] Уведомления
+  - [ ] Автообновление
+  - [ ] Темы
+  - [ ] RuStore
+- [ ] **Финальный релиз**
 
-```bash
-npm run reset-project
-```
+<div align="center">
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+[GNU AGPL v3 License](./LICENSE)<br>
+**© 2025 RanVix & Yarovich**
 
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+</div>

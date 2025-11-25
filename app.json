@@ -1,15 +1,22 @@
 {
   "expo": {
-    "name": "RKSIPlanshetka",
+    "name": "РКСИ Планшетка",
     "slug": "RKSIPlanshetka",
-    "version": "1.0.0",
+    "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "rksiplanshetka",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "description": "Мобильное приложение «РКСИ Планшетка». Разработчики: RanVix и Yarovich. Создано как дополнение к Telegram-боту «РКСИ Планшетка».",
+    "primaryColor": "#0A84FF",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ranvix.RKSIPlanshetka",
+      "buildNumber": "1",
+      "infoPlist": {
+        "CFBundleDisplayName": "РКСИ Планшетка"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -18,13 +25,25 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE"
+      ],
+      "usesCleartextTraffic": true,
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.ranvix.RKSIPlanshetka"
+      "package": "com.ranvix.RKSIPlanshetka",
+      "versionCode": 1
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "name": "РКСИ Планшетка",
+      "shortName": "РКСИ",
+      "lang": "ru",
+      "scope": "/",
+      "themeColor": "#0A84FF",
+      "backgroundColor": "#ffffff"
     },
     "plugins": [
       "expo-router",
