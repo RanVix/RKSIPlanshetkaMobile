@@ -1091,7 +1091,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {showScheduleTargetHint && !currentScheduleTarget && (
+      {showScheduleTargetHint && !currentScheduleTarget && currentPage === 'home' && activeTab === 'calendar' && (
         <View style={styles.targetHint}>
           <Text style={styles.targetHintTitle}>Начните с выбора группы</Text>
           <Text style={styles.targetHintText}>
