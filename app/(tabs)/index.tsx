@@ -4,6 +4,7 @@ import {
   getCachedCabinets,
   getCachedGroups,
   getCachedTeachers,
+  getCouples,
   getGroups,
   getSubscribers,
   getTeachers,
@@ -12,7 +13,7 @@ import {
 import { getCachedDeviceToken, getDeviceToken } from '@/lib/deviceTokenCache';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Animated, BackHandler, Dimensions, Easing, FlatList, Image, Linking, PanResponder, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, BackHandler, Dimensions, Easing, FlatList, Image, Linking, PanResponder, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import BurgerMenuIcon from '../../assets/BurgerMenu.svg';
 import CabinetIcon from '../../assets/Cabinet.svg';
 import CabinetBlackIcon from '../../assets/CabinetBlack.svg';
@@ -35,7 +36,12 @@ type Lesson = {
   teacher?: string;
   room?: string;
   group?: string;
-  number: number;
+  number: number | string;
+  combined?: string | null;
+};
+
+type LessonCard = Lesson & {
+  groupedLessons: Lesson[];
 };
 
 const WEB_DEVICE_TOKEN_KEY = '@cache/web-device-token';
@@ -47,6 +53,61 @@ type FavoriteItem = {
 };
 
 type SearchTab = 'group' | 'cabinet' | 'teacher';
+
+type ScheduleDay = {
+  date: string;
+  fromType: number;
+  corpus: number;
+  couples: Lesson[];
+};
+
+type ScheduleTarget = {
+  type: SearchTab;
+  name: string;
+};
+
+const DEFAULT_SCHEDULE_TARGET: ScheduleTarget = {
+  type: 'group',
+  name: 'ИС-21',
+};
+
+const isSameDay = (a: Date, b: Date) =>
+  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
+
+const formatDateLabel = (dateString: string) => {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) {
+    return dateString;
+  }
+  const today = new Date();
+  const dayLabel = isSameDay(date, today)
+    ? 'Сегодня'
+    : capitalize(
+        date.toLocaleDateString('ru-RU', {
+          weekday: 'long',
+        })
+      );
+  const datePart = date.toLocaleDateString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+  });
+  return `${dayLabel}, ${datePart}`;
+};
+
+const getScheduleTargetLabel = (target?: ScheduleTarget | null) => {
+  if (!target) {
+    return '';
+  }
+  const prefix = target.type === 'group' ? 'Группа' : target.type === 'cabinet' ? 'Кабинет' : 'Преподаватель';
+  return `${prefix}: ${target.name}`;
+};
+
+const getDateValue = (value: string) => {
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+};
 
 const mapSearchTabToSubscriptionType = (type: SearchTab): 'cab' | 'group' | 'prepod' => {
   if (type === 'cabinet') {
@@ -76,6 +137,58 @@ export default function HomeScreen() {
   const [groups, setGroups] = useState<string[]>([]);
   const [cabinets, setCabinets] = useState<string[]>([]);
   const [teachers, setTeachers] = useState<string[]>([]);
+  const [currentScheduleTarget, setCurrentScheduleTarget] = useState<ScheduleTarget>(DEFAULT_SCHEDULE_TARGET);
+  const [scheduleDays, setScheduleDays] = useState<ScheduleDay[]>([]);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
+  const [selectedScheduleIndex, setSelectedScheduleIndex] = useState(0);
+  const currentSchedule = useMemo(
+    () => scheduleDays[selectedScheduleIndex] ?? null,
+    [scheduleDays, selectedScheduleIndex]
+  );
+  const scheduleTargetLabel = getScheduleTargetLabel(currentScheduleTarget);
+  const canGoPrevDay = selectedScheduleIndex > 0;
+  const canGoNextDay = selectedScheduleIndex < scheduleDays.length - 1;
+  const currentScheduleFooterLabel =
+    currentSchedule?.fromType === 0 ? 'расписание' : currentSchedule ? 'планшетка' : null;
+  const currentScheduleList = useMemo<LessonCard[]>(() => {
+    if (!currentSchedule) {
+      return [];
+    }
+
+    const groups: LessonCard[] = [];
+    const map = new Map<string, LessonCard>();
+
+    currentSchedule.couples.forEach(lesson => {
+      const numberKey = `${lesson.number}`.trim();
+      const titleKey = (lesson.title ?? '').trim().toLowerCase();
+      const groupKey = `${numberKey}__${titleKey}`;
+
+      const existing = map.get(groupKey);
+      if (existing) {
+        existing.groupedLessons.push(lesson);
+        if (!existing.combined && lesson.combined) {
+          existing.combined = lesson.combined;
+        }
+        return;
+      }
+
+      const groupLesson: LessonCard = {
+        ...lesson,
+        groupedLessons: [lesson],
+      };
+
+      map.set(groupKey, groupLesson);
+      groups.push(groupLesson);
+    });
+
+    return groups;
+  }, [currentSchedule]);
+  const currentDateLabel = currentSchedule
+    ? `${formatDateLabel(currentSchedule.date)}${
+        currentSchedule.corpus ? ` | ${currentSchedule.corpus} корпус` : ''
+      }`
+    : 'Расписание не выбрано';
   const slideAnim = useRef(new Animated.Value(-Dimensions.get('window').width * 0.6)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const searchSlideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
@@ -127,6 +240,66 @@ export default function HomeScreen() {
     }
   }, []);
 
+  const loadSchedule = useCallback(async (targetName: string) => {
+    setScheduleLoading(true);
+    setScheduleError(null);
+    try {
+      const response = await getCouples(targetName);
+      const normalized: ScheduleDay[] = Object.entries(response ?? {}).map(([dateKey, payload]) => ({
+        date: dateKey,
+        fromType: payload.from_type,
+        corpus: payload.corpus,
+        couples: (payload.couples ?? []).map((couple, index) => {
+          const coupleRaw = `${couple.couple ?? ''}`.trim();
+          const coupleMatch = coupleRaw.match(/\d+/);
+          const pairNumber = coupleMatch ? Number(coupleMatch[0]) : coupleRaw || index + 1;
+          const cabinetRaw = couple.cabinet?.trim() ?? '';
+          const normalizedCabinet = cabinetRaw === 'К' ? 'К' : cabinetRaw;
+          const coupleIdSuffix = coupleRaw || `slot-${index}`;
+
+          return {
+            id: `${dateKey}-${coupleIdSuffix}-${index}`,
+            number: pairNumber,
+            startTime: couple.time?.start ?? '',
+            endTime: couple.time?.end ?? '',
+            title: couple.lesson?.trim() || '—',
+            teacher: couple.teacher ?? '',
+            room: normalizedCabinet,
+            group: couple.group ?? '',
+            combined: couple.combined ?? null,
+          };
+        }),
+      }));
+
+      normalized.sort((a, b) => getDateValue(a.date) - getDateValue(b.date));
+
+      setScheduleDays(normalized);
+      setSelectedScheduleIndex(0);
+
+      if (normalized.length === 0) {
+        setScheduleError('Расписание отсутствует');
+      }
+    } catch (error) {
+      console.error('Failed to load couples schedule', error);
+      setScheduleError('Не удалось загрузить расписание. Попробуйте позже.');
+      setScheduleDays([]);
+    } finally {
+      setScheduleLoading(false);
+    }
+  }, []);
+
+  const handleChangeScheduleDay = useCallback(
+    (direction: 'prev' | 'next') => {
+      setSelectedScheduleIndex(prev => {
+        if (direction === 'prev') {
+          return Math.max(prev - 1, 0);
+        }
+        return Math.min(prev + 1, Math.max(scheduleDays.length - 1, 0));
+      });
+    },
+    [scheduleDays.length]
+  );
+
   const loadActiveSubscriptions = useCallback(async () => {
     try {
       let token = await getCachedDeviceToken();
@@ -152,6 +325,13 @@ export default function HomeScreen() {
       console.error('Failed to load active subscriptions from backend', error);
     }
   }, [getWebDeviceToken]);
+
+  useEffect(() => {
+    if (!currentScheduleTarget?.name) {
+      return;
+    }
+    loadSchedule(currentScheduleTarget.name);
+  }, [currentScheduleTarget, loadSchedule]);
 
   useEffect(() => {
     loadActiveSubscriptions();
@@ -205,42 +385,6 @@ export default function HomeScreen() {
       });
     }
   }, [menuOpen, slideAnim, overlayOpacity]);
-
-  const data: Lesson[] = useMemo(
-    () => [
-      {
-        id: '1',
-        startTime: '11:30',
-        endTime: '13:00',
-        title: 'Основы кибернетики и робототехники',
-        teacher: 'Сулавко С.Н.',
-        room: '414',
-        group: 'ИС-28',
-        number: 3,
-      },
-      {
-        id: '2',
-        startTime: '13:10',
-        endTime: '14:40',
-        title: '—',
-        teacher: 'Швачич Д.С.',
-        room: 'с/32',
-        group: '',
-        number: 4,
-      },
-      {
-        id: '3',
-        startTime: '15:00',
-        endTime: '16:30',
-        title: 'Иностранный язык в профессиональной деятельности',
-        teacher: 'Лебедева М.В',
-        room: '104',
-        group: '',
-        number: 5,
-      },
-    ],
-    []
-  );
 
   useEffect(() => {
     let isMounted = true;
@@ -480,6 +624,17 @@ export default function HomeScreen() {
       setSearchText('');
     });
   }, [searchSlideAnim]);
+
+  const handleSelectScheduleTarget = useCallback(
+    (type: SearchTab, name: string) => {
+      setCurrentScheduleTarget({ type, name });
+      setSearchText('');
+      setCurrentPage('home');
+      setActiveTab('calendar');
+      closeSearch();
+    },
+    [closeSearch]
+  );
 
   const openSubscriptionPicker = useCallback(() => {
     setSubscriptionPickerOpen(true);
@@ -783,8 +938,9 @@ export default function HomeScreen() {
           }}
         >
           <TextInput
-            placeholder="Группа: ИС-21"
+            placeholder="Выберите расписание"
             placeholderTextColor="#FFFFFF"
+            value={scheduleTargetLabel}
             style={styles.searchInput}
             editable={false}
           />
@@ -797,66 +953,117 @@ export default function HomeScreen() {
           <>
             {/* Дата */}
             <View style={styles.dateRow}>
+              <TouchableOpacity
+                style={[styles.dateArrowButton, !canGoPrevDay && styles.dateArrowButtonDisabled]}
+                onPress={() => handleChangeScheduleDay('prev')}
+                disabled={!canGoPrevDay}
+              >
+                <Text style={styles.dateArrowText}>‹</Text>
+              </TouchableOpacity>
               <View style={styles.datePill}>
-                <Text style={styles.dateText} numberOfLines={1}>Сегодня, 30.10 | 1 корпус</Text>
+                <Text style={styles.dateText} numberOfLines={1}>{currentDateLabel}</Text>
               </View>
+              <TouchableOpacity
+                style={[styles.dateArrowButton, !canGoNextDay && styles.dateArrowButtonDisabled]}
+                onPress={() => handleChangeScheduleDay('next')}
+                disabled={!canGoNextDay}
+              >
+                <Text style={styles.dateArrowText}>›</Text>
+              </TouchableOpacity>
             </View>
 
             {/* Список пар */}
             <FlatList
-              data={data}
+              data={currentScheduleList}
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.listContent}
-              ListFooterComponent={(
-                <View style={styles.footerInline}>
-                  <Text style={styles.footerLinkText}>планшетка</Text>
+              refreshing={scheduleLoading}
+              onRefresh={() => {
+                if (currentScheduleTarget?.name) {
+                  loadSchedule(currentScheduleTarget.name);
+                }
+              }}
+              ListFooterComponent={
+                currentScheduleFooterLabel ? (
+                  <View style={styles.footerInline}>
+                    <Text style={styles.footerLinkText}>{currentScheduleFooterLabel}</Text>
+                  </View>
+                ) : null
+              }
+              ListEmptyComponent={(
+                <View style={styles.scheduleEmpty}>
+                  {scheduleLoading ? (
+                    <ActivityIndicator color="#F3F4F6" />
+                  ) : (
+                    <Text style={styles.scheduleEmptyText}>
+                      {scheduleError ?? 'Выберите группу, кабинет или преподавателя, чтобы увидеть пары.'}
+                    </Text>
+                  )}
                 </View>
               )}
-              renderItem={({ item }) => (
-                <View style={styles.card}>
-                  <View style={styles.cardRow}>
-                    {/* Время и номер */}
-                    <View style={styles.timeCol}>
-                      <Text style={styles.startTime}>{item.startTime}</Text>
-                      {item.endTime ? (
-                        <Text style={styles.endTime}>{item.endTime}</Text>
-                      ) : null}
-                      <View style={styles.lessonNumberWrap}>
-                        <Text style={styles.lessonNumber}>{item.number}</Text>
-                      </View>
-                    </View>
+              renderItem={({ item }) => {
+                const lessonVariants = item.groupedLessons;
+                const primaryLesson = lessonVariants[0];
+                const hasCombinedBadge = lessonVariants.some(lesson => Boolean(lesson.combined));
 
-                    {/* Контент пары */}
-                    <View style={styles.cardContent}>
-                      <View style={styles.titleBar}>
-                        <View style={styles.titleBarInner}>
-                          <Text style={styles.titleText} numberOfLines={2}>{item.title}</Text>
+                return (
+                  <View style={styles.card}>
+                    <View style={styles.cardRow}>
+                      {/* Время и номер */}
+                      <View style={styles.timeCol}>
+                        <Text style={styles.startTime}>{primaryLesson.startTime}</Text>
+                        {primaryLesson.endTime ? (
+                          <Text style={styles.endTime}>{primaryLesson.endTime}</Text>
+                        ) : null}
+                        <View style={styles.lessonNumberWrap}>
+                          <Text style={styles.lessonNumber}>{primaryLesson.number}</Text>
                         </View>
                       </View>
 
-                      <View style={styles.infoLine}>
-                        <UserIcon width={16} height={16} style={styles.icon} />
-                        <Text style={styles.metaText} numberOfLines={1}>{item.teacher || '—'}</Text>
-                      </View>
-
-                      <View style={styles.infoLine}>
-                        <CabinetIcon width={16} height={16} style={styles.icon} />
-                        <Text style={styles.metaText}>{item.room || '—'}</Text>
-                      </View>
-
-                      {Boolean(item.group) && (
-                        <View style={styles.infoLine}>
-                          <CombinedIcon width={16} height={16} style={styles.icon} />
-                          <Text style={styles.metaText} numberOfLines={1}>
-                            {item.group}
-                            {item.room ? ` · ${item.room}` : ''}
-                          </Text>
+                      {/* Контент пары */}
+                      <View style={styles.cardContent}>
+                        <View style={styles.titleBar}>
+                          <View style={styles.titleBarInner}>
+                            <Text style={styles.titleText} numberOfLines={2}>{primaryLesson.title}</Text>
+                            {hasCombinedBadge && (
+                              <View style={styles.badge}>
+                                <Text style={styles.badgeText}>Совмещёнка</Text>
+                              </View>
+                            )}
+                          </View>
                         </View>
-                      )}
+
+                        {lessonVariants.map((lessonVariant, index) => (
+                          <View
+                            key={lessonVariant.id}
+                            style={index === 0 ? undefined : styles.lessonVariantDivider}
+                          >
+                            <View style={styles.infoLine}>
+                              <UserIcon width={16} height={16} style={styles.icon} />
+                              <Text style={styles.metaText} numberOfLines={1}>{lessonVariant.teacher || '—'}</Text>
+                            </View>
+
+                            <View style={styles.infoLine}>
+                              <CabinetIcon width={16} height={16} style={styles.icon} />
+                              <Text style={styles.metaText}>{lessonVariant.room || '—'}</Text>
+                            </View>
+
+                            {Boolean(lessonVariant.group || lessonVariant.combined) && (
+                              <View style={[styles.infoLine, styles.groupInfoLine]}>
+                                <CombinedIcon width={16} height={16} style={styles.icon} />
+                                <Text style={styles.metaText} numberOfLines={1}>
+                                  {lessonVariant.group || '—'}
+                                  {lessonVariant.combined ? ` · ${lessonVariant.combined}` : ''}
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                        ))}
+                      </View>
                     </View>
                   </View>
-                </View>
-              )}
+                );
+              }}
             />
           </>
         ) : (
@@ -1059,6 +1266,7 @@ export default function HomeScreen() {
                     <TouchableOpacity
                       key={item.id}
                       style={styles.favoriteItem}
+                  onPress={() => handleSelectScheduleTarget(item.type, item.name)}
                       onLongPress={() => removeFromFavorites(item.id)}
                     >
                       <Text style={styles.favoriteItemText}>{item.name}</Text>
@@ -1143,13 +1351,14 @@ export default function HomeScreen() {
               {/* Список элементов */}
               <FlatList
                 data={filteredData}
-                keyExtractor={(item, index) => `${searchTab}-${index}`}
+                keyExtractor={(item) => `${searchTab}-${item}`}
                 numColumns={2}
                 columnWrapperStyle={styles.searchListRow}
                 contentContainerStyle={styles.searchList}
                 renderItem={({ item }) => (
                   <TouchableOpacity
                     style={styles.searchItem}
+                    onPress={() => handleSelectScheduleTarget(searchTab, item)}
                     onLongPress={() => {
                       if (isFavorite(searchTab, item)) {
                         removeFromFavorites(`${searchTab}-${item}`);
@@ -1437,7 +1646,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   menuFooter: {
-    paddingBottom: 28,
+    paddingBottom: 40,
     alignItems: 'center',
   },
   footerText: {
@@ -1455,7 +1664,27 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, color: '#F3F4F6' },
   searchIcon: { color: '#9CA3AF' },
-  dateRow: { paddingHorizontal: 16, alignItems: 'center' },
+  dateRow: {
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  dateArrowButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateArrowButtonDisabled: {
+    opacity: 0.3,
+  },
+  dateArrowText: {
+    color: '#F3F4F6',
+    fontSize: 20,
+    fontWeight: '600',
+  },
   datePill: {
     height: 32,
     borderRadius: 999,
@@ -1469,6 +1698,16 @@ const styles = StyleSheet.create({
   },
   dateText: { color: '#E5E7EB', fontSize: 13, flexShrink: 1, marginRight: 6 },
   listContent: { padding: 16 },
+  scheduleEmpty: {
+    paddingHorizontal: 16,
+    paddingVertical: 32,
+    alignItems: 'center',
+  },
+  scheduleEmptyText: {
+    color: '#9CA3AF',
+    fontSize: 14,
+    textAlign: 'center',
+  },
   footerLinkContainer: { alignItems: 'center', paddingVertical: 16 },
   footerInline: { alignItems: 'center', paddingTop: 8, paddingBottom: 4 },
   footerStatic: { alignItems: 'center', paddingVertical: 24 },
@@ -1521,6 +1760,13 @@ const styles = StyleSheet.create({
   metaIcon: { color: '#9CA3AF' },
   metaText: { color: '#E5E7EB', fontSize: 13, maxWidth: '90%' },
   infoLine: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+  groupInfoLine: { marginTop: 10 },
+  lessonVariantDivider: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#232832',
+  },
   icon: { marginRight: 8 },
   bottomTabs: {
     alignItems: 'center',

@@ -247,6 +247,38 @@ type SubscribeResponse = {
   message: string
 }
 
+type CoupleTime = {
+  start: string
+  end: string
+}
+
+type BackendCouple = {
+  couple: string
+  time: CoupleTime
+  lesson: string | null
+  cabinet: string
+  teacher: string
+  group: string
+  combined: string | null
+}
+
+type BackendCouplesDay = {
+  from_type: number
+  corpus: number
+  couples: BackendCouple[]
+}
+
+export type CouplesResponse = Record<string, BackendCouplesDay>
+
+export const getCouples = async (name: string) => {
+  try {
+    const response = await http.get<CouplesResponse>(`/couples/${encodeURIComponent(name)}`)
+    return ensureSuccess(response)
+  } catch (error) {
+    normalizeAxiosError(error)
+  }
+}
+
 export const deleteSubscription = async (token: string, name: string) => {
   try {
     const response = await http.delete<SubscribeResponse>(
