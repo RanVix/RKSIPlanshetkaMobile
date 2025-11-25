@@ -255,6 +255,7 @@ export default function HomeScreen() {
           const pairNumber = coupleMatch ? Number(coupleMatch[0]) : coupleRaw || index + 1;
           const cabinetRaw = couple.cabinet?.trim() ?? '';
           const normalizedCabinet = cabinetRaw === 'К' ? 'К' : cabinetRaw;
+        const normalizedTitle = normalizedCabinet === 'К' ? 'Классный час' : couple.lesson?.trim() || '—';
           const coupleIdSuffix = coupleRaw || `slot-${index}`;
 
           return {
@@ -262,7 +263,7 @@ export default function HomeScreen() {
             number: pairNumber,
             startTime: couple.time?.start ?? '',
             endTime: couple.time?.end ?? '',
-            title: couple.lesson?.trim() || '—',
+            title: normalizedTitle,
             teacher: couple.teacher ?? '',
             room: normalizedCabinet,
             group: couple.group ?? '',
