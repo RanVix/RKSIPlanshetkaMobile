@@ -66,11 +66,6 @@ type ScheduleTarget = {
   name: string;
 };
 
-const DEFAULT_SCHEDULE_TARGET: ScheduleTarget = {
-  type: 'group',
-  name: 'ИС-21',
-};
-
 const isSameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
@@ -109,6 +104,80 @@ const getDateValue = (value: string) => {
   return Number.isNaN(time) ? 0 : time;
 };
 
+const SCHEDULE_CACHE_KEY = '@cache/schedule-couples';
+const SCHEDULE_TARGET_CACHE_KEY = '@cache/schedule-target';
+
+type ScheduleCacheStore = Record<string, ScheduleDay[]>;
+
+const getTodayStart = () => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today.getTime();
+};
+
+const filterFutureScheduleDays = (days: ScheduleDay[]) => {
+  const todayStart = getTodayStart();
+  return days.filter(day => {
+    const dayTime = getDateValue(day.date);
+    return dayTime === 0 ? true : dayTime >= todayStart;
+  });
+};
+
+const readScheduleCache = async (): Promise<ScheduleCacheStore> => {
+  try {
+    const rawValue = await AsyncStorage.getItem(SCHEDULE_CACHE_KEY);
+    if (!rawValue) {
+      return {};
+    }
+    const parsed = JSON.parse(rawValue);
+    if (parsed && typeof parsed === 'object') {
+      return parsed as ScheduleCacheStore;
+    }
+    return {};
+  } catch (error) {
+    console.error('Failed to read schedule cache', error);
+    return {};
+  }
+};
+
+const writeScheduleCache = async (cache: ScheduleCacheStore) => {
+  try {
+    const serialized = JSON.stringify(cache);
+    await AsyncStorage.setItem(SCHEDULE_CACHE_KEY, serialized);
+  } catch (error) {
+    console.error('Failed to write schedule cache', error);
+  }
+};
+
+const getCachedScheduleForTarget = async (targetKey: string): Promise<ScheduleDay[]> => {
+  const cache = await readScheduleCache();
+  const storedDays = cache[targetKey];
+  if (!storedDays) {
+    return [];
+  }
+  const filtered = filterFutureScheduleDays(storedDays);
+  if (filtered.length !== storedDays.length) {
+    if (filtered.length > 0) {
+      cache[targetKey] = filtered;
+    } else {
+      delete cache[targetKey];
+    }
+    await writeScheduleCache(cache);
+  }
+  return filtered;
+};
+
+const persistScheduleForTarget = async (targetKey: string, days: ScheduleDay[]): Promise<void> => {
+  const cache = await readScheduleCache();
+  const filteredDays = filterFutureScheduleDays(days);
+  if (filteredDays.length > 0) {
+    cache[targetKey] = filteredDays;
+  } else {
+    delete cache[targetKey];
+  }
+  await writeScheduleCache(cache);
+};
+
 const mapSearchTabToSubscriptionType = (type: SearchTab): 'cab' | 'group' | 'prepod' => {
   if (type === 'cabinet') {
     return 'cab';
@@ -137,7 +206,7 @@ export default function HomeScreen() {
   const [groups, setGroups] = useState<string[]>([]);
   const [cabinets, setCabinets] = useState<string[]>([]);
   const [teachers, setTeachers] = useState<string[]>([]);
-  const [currentScheduleTarget, setCurrentScheduleTarget] = useState<ScheduleTarget>(DEFAULT_SCHEDULE_TARGET);
+  const [currentScheduleTarget, setCurrentScheduleTarget] = useState<ScheduleTarget | null>(null);
   const [scheduleDays, setScheduleDays] = useState<ScheduleDay[]>([]);
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
@@ -198,6 +267,8 @@ export default function HomeScreen() {
   const togglePosition = useRef(new Animated.Value(0)).current;
   const searchInputRef = useRef<TextInput>(null);
   const menuAnimating = useRef(false);
+  const scheduleRequestKeyRef = useRef<string | null>(null);
+  const [showScheduleTargetHint, setShowScheduleTargetHint] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -225,6 +296,39 @@ export default function HomeScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const hydrateScheduleTarget = async () => {
+      try {
+        const cachedTargetRaw = await AsyncStorage.getItem(SCHEDULE_TARGET_CACHE_KEY);
+        if (!isMounted) {
+          return;
+        }
+        if (cachedTargetRaw) {
+          const parsed = JSON.parse(cachedTargetRaw);
+          if (parsed?.name && parsed?.type) {
+            setCurrentScheduleTarget(parsed);
+            setShowScheduleTargetHint(false);
+            return;
+          }
+        }
+        setShowScheduleTargetHint(true);
+      } catch (error) {
+        console.error('Failed to load cached schedule target', error);
+        if (isMounted) {
+          setShowScheduleTargetHint(true);
+        }
+      }
+    };
+
+    hydrateScheduleTarget();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const getWebDeviceToken = useCallback(async () => {
     try {
       const cached = await AsyncStorage.getItem(WEB_DEVICE_TOKEN_KEY);
@@ -240,54 +344,82 @@ export default function HomeScreen() {
     }
   }, []);
 
-  const loadSchedule = useCallback(async (targetName: string) => {
-    setScheduleLoading(true);
-    setScheduleError(null);
-    try {
-      const response = await getCouples(targetName);
-      const normalized: ScheduleDay[] = Object.entries(response ?? {}).map(([dateKey, payload]) => ({
-        date: dateKey,
-        fromType: payload.from_type,
-        corpus: payload.corpus,
-        couples: (payload.couples ?? []).map((couple, index) => {
-          const coupleRaw = `${couple.couple ?? ''}`.trim();
-          const coupleMatch = coupleRaw.match(/\d+/);
-          const pairNumber = coupleMatch ? Number(coupleMatch[0]) : coupleRaw || index + 1;
-          const cabinetRaw = couple.cabinet?.trim() ?? '';
-          const normalizedCabinet = cabinetRaw === 'К' ? 'К' : cabinetRaw;
-        const normalizedTitle = normalizedCabinet === 'К' ? 'Классный час' : couple.lesson?.trim() || '—';
-          const coupleIdSuffix = coupleRaw || `slot-${index}`;
+  const loadSchedule = useCallback(
+    async (target: ScheduleTarget) => {
+      const targetKey = `${target.type}:${target.name}`;
+      scheduleRequestKeyRef.current = targetKey;
+      setScheduleLoading(true);
+      setScheduleError(null);
 
-          return {
-            id: `${dateKey}-${coupleIdSuffix}-${index}`,
-            number: pairNumber,
-            startTime: couple.time?.start ?? '',
-            endTime: couple.time?.end ?? '',
-            title: normalizedTitle,
-            teacher: couple.teacher ?? '',
-            room: normalizedCabinet,
-            group: couple.group ?? '',
-            combined: couple.combined ?? null,
-          };
-        }),
-      }));
+      let cacheApplied = false;
 
-      normalized.sort((a, b) => getDateValue(a.date) - getDateValue(b.date));
-
-      setScheduleDays(normalized);
-      setSelectedScheduleIndex(0);
-
-      if (normalized.length === 0) {
-        setScheduleError('Расписание отсутствует');
+      try {
+        const cachedDays = await getCachedScheduleForTarget(targetKey);
+        if (cachedDays.length > 0 && scheduleRequestKeyRef.current === targetKey) {
+          cacheApplied = true;
+          setScheduleDays(cachedDays);
+          setSelectedScheduleIndex(0);
+        }
+      } catch (error) {
+        console.error('Failed to hydrate schedule from cache', error);
       }
-    } catch (error) {
-      console.error('Failed to load couples schedule', error);
-      setScheduleError('Не удалось загрузить расписание. Попробуйте позже.');
-      setScheduleDays([]);
-    } finally {
-      setScheduleLoading(false);
-    }
-  }, []);
+
+      try {
+        const response = await getCouples(target.name);
+        const normalized: ScheduleDay[] = Object.entries(response ?? {}).map(([dateKey, payload]) => ({
+          date: dateKey,
+          fromType: payload.from_type,
+          corpus: payload.corpus,
+          couples: (payload.couples ?? []).map((couple, index) => {
+            const coupleRaw = `${couple.couple ?? ''}`.trim();
+            const coupleMatch = coupleRaw.match(/\d+/);
+            const pairNumber = coupleMatch ? Number(coupleMatch[0]) : coupleRaw || index + 1;
+            const cabinetRaw = couple.cabinet?.trim() ?? '';
+            const normalizedCabinet = cabinetRaw === 'К' ? 'К' : cabinetRaw;
+            const normalizedTitle = normalizedCabinet === 'К' ? 'Классный час' : couple.lesson?.trim() || '—';
+            const coupleIdSuffix = coupleRaw || `slot-${index}`;
+
+            return {
+              id: `${dateKey}-${coupleIdSuffix}-${index}`,
+              number: pairNumber,
+              startTime: couple.time?.start ?? '',
+              endTime: couple.time?.end ?? '',
+              title: normalizedTitle,
+              teacher: couple.teacher ?? '',
+              room: normalizedCabinet,
+              group: couple.group ?? '',
+              combined: couple.combined ?? null,
+            };
+          }),
+        }));
+
+        normalized.sort((a, b) => getDateValue(a.date) - getDateValue(b.date));
+
+        if (scheduleRequestKeyRef.current === targetKey) {
+          setScheduleDays(normalized);
+          setSelectedScheduleIndex(0);
+          setScheduleError(normalized.length === 0 ? 'Расписание отсутствует' : null);
+        }
+
+        await persistScheduleForTarget(targetKey, normalized);
+      } catch (error) {
+        console.error('Failed to load couples schedule', error);
+        if (scheduleRequestKeyRef.current === targetKey) {
+          if (cacheApplied) {
+            setScheduleError('Не удалось обновить расписание. Показаны данные из кэша.');
+          } else {
+            setScheduleDays([]);
+            setScheduleError('Не удалось загрузить расписание. Попробуйте позже.');
+          }
+        }
+      } finally {
+        if (scheduleRequestKeyRef.current === targetKey) {
+          setScheduleLoading(false);
+        }
+      }
+    },
+    []
+  );
 
   const handleChangeScheduleDay = useCallback(
     (direction: 'prev' | 'next') => {
@@ -331,7 +463,7 @@ export default function HomeScreen() {
     if (!currentScheduleTarget?.name) {
       return;
     }
-    loadSchedule(currentScheduleTarget.name);
+    loadSchedule(currentScheduleTarget);
   }, [currentScheduleTarget, loadSchedule]);
 
   useEffect(() => {
@@ -627,8 +759,18 @@ export default function HomeScreen() {
   }, [searchSlideAnim]);
 
   const handleSelectScheduleTarget = useCallback(
-    (type: SearchTab, name: string) => {
-      setCurrentScheduleTarget({ type, name });
+    async (type: SearchTab, name: string) => {
+      const nextTarget = { type, name };
+      setCurrentScheduleTarget(nextTarget);
+      setShowScheduleTargetHint(false);
+      setScheduleDays([]);
+      setSelectedScheduleIndex(0);
+      setScheduleError(null);
+      try {
+        await AsyncStorage.setItem(SCHEDULE_TARGET_CACHE_KEY, JSON.stringify(nextTarget));
+      } catch (error) {
+        console.error('Failed to cache selected schedule target', error);
+      }
       setSearchText('');
       setCurrentPage('home');
       setActiveTab('calendar');
@@ -949,6 +1091,15 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
+      {showScheduleTargetHint && !currentScheduleTarget && (
+        <View style={styles.targetHint}>
+          <Text style={styles.targetHintTitle}>Начните с выбора группы</Text>
+          <Text style={styles.targetHintText}>
+            Нажмите на строку выше, выберите группу и мы сохраним её, чтобы показывать пары даже без интернета.
+          </Text>
+        </View>
+      )}
+
       {currentPage === 'home' ? (
         activeTab === 'calendar' ? (
           <>
@@ -981,7 +1132,7 @@ export default function HomeScreen() {
               refreshing={scheduleLoading}
               onRefresh={() => {
                 if (currentScheduleTarget?.name) {
-                  loadSchedule(currentScheduleTarget.name);
+                  loadSchedule(currentScheduleTarget);
                 }
               }}
               ListFooterComponent={
@@ -1665,6 +1816,24 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, color: '#F3F4F6' },
   searchIcon: { color: '#9CA3AF' },
+  targetHint: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#1B2129',
+  },
+  targetHintTitle: {
+    color: '#F3F4F6',
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  targetHintText: {
+    color: '#9CA3AF',
+    fontSize: 13,
+    lineHeight: 18,
+  },
   dateRow: {
     paddingHorizontal: 16,
     alignItems: 'center',
