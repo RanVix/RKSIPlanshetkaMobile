@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "РКСИ Планшетка",
+    "name": "Планшетка",
     "slug": "RKSIPlanshetka",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -8,16 +8,15 @@
     "scheme": "rksiplanshetka",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "description": "Мобильное приложение «РКСИ Планшетка». Разработчики: RanVix и Yarovich. Создано как дополнение к Telegram-боту «РКСИ Планшетка».",
+    "description": "Мобильное приложение «Планшетка». Разработчики: RanVix и Yarovich. Создано как дополнение к Telegram-боту «РКСИ Планшетка».",
     "primaryColor": "#0A84FF",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ranvix.RKSIPlanshetka",
       "buildNumber": "1",
       "infoPlist": {
-        "CFBundleDisplayName": "РКСИ Планшетка"
-      },
-      "googleServicesFile": "./GoogleService-Info.plist"
+        "CFBundleDisplayName": "Планшетка"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -53,9 +52,6 @@
       [
         "@react-native-firebase/messaging",
         {
-          "ios": {
-            "autoRegisterForRemoteMessages": true
-          },
           "android": {
             "enableGradleWatchers": false
           }
