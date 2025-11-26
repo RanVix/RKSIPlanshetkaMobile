@@ -41,6 +41,3 @@ app-example
 # generated native folders
 /ios
 /android
-
-#file with api-key
-google-services.json

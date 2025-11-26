@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "94285062107",
+    "project_id": "planshetka-app",
+    "storage_bucket": "planshetka-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:94285062107:android:29a936698cc3b02437d1fe",
+        "android_client_info": {
+          "package_name": "com.ranvix.RKSIPlanshetka"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBh8_tidMDBuJ7SB6OkiB5OpB6bcHBH2t8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
