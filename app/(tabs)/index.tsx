@@ -1217,32 +1217,40 @@ export default function HomeScreen() {
                           </View>
                         </View>
 
-                        {lessonVariants.map((lessonVariant, index) => (
-                          <View
-                            key={lessonVariant.id}
-                            style={index === 0 ? undefined : styles.lessonVariantDivider}
-                          >
-                            <View style={styles.infoLine}>
-                              <UserIcon width={16} height={16} style={styles.icon} />
-                              <Text style={styles.metaText} numberOfLines={1}>{lessonVariant.teacher || '—'}</Text>
-                            </View>
+                        {lessonVariants.map((lessonVariant, index) => {
+                          // Находим кабинет совмещенной группы
+                          const combinedGroupCabinet = lessonVariant.combined
+                            ? lessonVariants.find(v => v.group === lessonVariant.combined)?.room || '—'
+                            : null;
 
-                            <View style={styles.infoLine}>
-                              <CabinetIcon width={16} height={16} style={styles.icon} />
-                              <Text style={styles.metaText}>{lessonVariant.room || '—'}</Text>
-                            </View>
-
-                            {Boolean(lessonVariant.group || lessonVariant.combined) && (
-                              <View style={[styles.infoLine, styles.groupInfoLine]}>
-                                <CombinedIcon width={16} height={16} style={styles.icon} />
-                                <Text style={styles.metaText} numberOfLines={1}>
-                                  {lessonVariant.group || '—'}
-                                  {lessonVariant.combined ? ` · ${lessonVariant.combined}` : ''}
-                                </Text>
+                          return (
+                            <View
+                              key={lessonVariant.id}
+                              style={index === 0 ? undefined : styles.lessonVariantDivider}
+                            >
+                              <View style={styles.infoLine}>
+                                <UserIcon width={16} height={16} style={styles.icon} />
+                                <Text style={styles.metaText} numberOfLines={1}>{lessonVariant.teacher || '—'}</Text>
                               </View>
-                            )}
-                          </View>
-                        ))}
+
+                              <View style={styles.infoLine}>
+                                <CabinetIcon width={16} height={16} style={styles.icon} />
+                                <Text style={styles.metaText}>{lessonVariant.room || '—'}</Text>
+                              </View>
+
+                              {/* Третья строка показывается только для совмещенки */}
+                              {lessonVariant.combined && (
+                                <View style={[styles.infoLine, styles.groupInfoLine]}>
+                                  <CombinedIcon width={16} height={16} style={styles.icon} />
+                                  <Text style={styles.metaText} numberOfLines={1}>
+                                    {lessonVariant.combined}
+                                    {combinedGroupCabinet && combinedGroupCabinet !== '—' ? ` · ${combinedGroupCabinet}` : ''}
+                                  </Text>
+                                </View>
+                              )}
+                            </View>
+                          );
+                        })}
                       </View>
                     </View>
                   </View>
@@ -1921,13 +1929,20 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cardRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  timeCol: { width: 64, alignItems: 'flex-start' },
+  timeCol: {
+    width: 64,
+    alignItems: 'flex-start',
+    paddingBottom: 4,
+    position: 'relative',
+  },
   startTime: { color: '#F3F4F6', fontSize: 20, fontWeight: '600' },
   endTime: { color: '#9CA3AF', fontSize: 15, marginTop: 4 },
   lessonNumberWrap: {
-    marginTop: 32,
-    height: 28,
-    width: 28,
+    position: 'absolute',
+    top: 64,
+    left: 0,
+    height: 26,
+    width: 26,
     borderRadius: 14,
     backgroundColor: '#D1D5DB',
     alignItems: 'center',
