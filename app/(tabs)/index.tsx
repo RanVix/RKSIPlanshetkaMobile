@@ -85,6 +85,15 @@ type ScheduleTarget = {
 const isSameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
+const isTomorrow = (date: Date) => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  const dateToCheck = new Date(date);
+  dateToCheck.setHours(0, 0, 0, 0);
+  return isSameDay(dateToCheck, tomorrow);
+};
+
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
 const formatDateLabel = (dateString: string) => {
@@ -93,13 +102,20 @@ const formatDateLabel = (dateString: string) => {
     return dateString;
   }
   const today = new Date();
-  const dayLabel = isSameDay(date, today)
-    ? 'Сегодня'
-    : capitalize(
-        date.toLocaleDateString('ru-RU', {
-          weekday: 'long',
-        })
-      );
+  let dayLabel: string;
+  
+  if (isSameDay(date, today)) {
+    dayLabel = 'Сегодня';
+  } else if (isTomorrow(date)) {
+    dayLabel = 'Завтра';
+  } else {
+    dayLabel = capitalize(
+      date.toLocaleDateString('ru-RU', {
+        weekday: 'long',
+      })
+    );
+  }
+  
   const datePart = date.toLocaleDateString('ru-RU', {
     day: '2-digit',
     month: '2-digit',

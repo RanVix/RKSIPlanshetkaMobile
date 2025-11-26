@@ -15,7 +15,9 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import firebase from '@react-native-firebase/app'
 import messaging from '@react-native-firebase/messaging'
+import { Platform } from 'react-native'
 
 const DEVICE_TOKEN_CACHE_KEY = '@cache/device-token'
 
@@ -40,20 +42,34 @@ export const clearCachedDeviceToken = async () => {
 }
 
 const ensurePermissions = async () => {
-  await messaging().registerDeviceForRemoteMessages()
-  const currentStatus = await messaging().hasPermission()
+  try {
+    // Инициализация Firebase(проверка)
+    if (!firebase.apps.length) {
+      throw new Error('Firebase app is not initialized')
+    }
 
-  if (isAuthorized(currentStatus)) {
-    return currentStatus
+    // registerDeviceForRemoteMessages() на IOS
+    if (Platform.OS === 'ios') {
+      await messaging().registerDeviceForRemoteMessages()
+    }
+    
+    const currentStatus = await messaging().hasPermission()
+
+    if (isAuthorized(currentStatus)) {
+      return currentStatus
+    }
+
+    const requestedStatus = await messaging().requestPermission()
+
+    if (!isAuthorized(requestedStatus)) {
+      throw new Error('Push notification permission was not granted')
+    }
+
+    return requestedStatus
+  } catch (error) {
+    console.error('Firebase messaging error:', error)
+    throw error
   }
-
-  const requestedStatus = await messaging().requestPermission()
-
-  if (!isAuthorized(requestedStatus)) {
-    throw new Error('Push notification permission was not granted')
-  }
-
-  return requestedStatus
 }
 
 export const getDeviceToken = async (forceRefresh = false) => {
