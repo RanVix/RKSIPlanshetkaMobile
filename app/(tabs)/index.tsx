@@ -1801,6 +1801,7 @@ const styles = StyleSheet.create({
     zIndex: 1002,
     paddingTop: 60,
     paddingHorizontal: 12,
+    paddingBottom: 30,
   },
   menuHeader: {
     flexDirection: 'row',
@@ -1838,7 +1839,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   menuFooter: {
-    paddingBottom: 40,
+    paddingBottom: 8,
     alignItems: 'center',
   },
   footerText: {
