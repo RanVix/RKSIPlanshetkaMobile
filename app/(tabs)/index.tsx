@@ -1222,6 +1222,9 @@ export default function HomeScreen() {
                           const combinedGroupCabinet = lessonVariant.combined
                             ? lessonVariants.find(v => v.group === lessonVariant.combined)?.room || '—'
                             : null;
+                          
+                          // Показываем группу, если поиск не по группам
+                          const shouldShowGroup = currentScheduleTarget?.type !== 'group';
 
                           return (
                             <View
@@ -1237,6 +1240,14 @@ export default function HomeScreen() {
                                 <CabinetIcon width={16} height={16} style={styles.icon} />
                                 <Text style={styles.metaText}>{lessonVariant.room || '—'}</Text>
                               </View>
+
+                              {/* Группа показывается при поиске по преподавателям или кабинетам */}
+                              {shouldShowGroup && lessonVariant.group && (
+                                <View style={styles.infoLine}>
+                                  <CombinedIcon width={16} height={16} style={styles.icon} />
+                                  <Text style={styles.metaText} numberOfLines={1}>{lessonVariant.group}</Text>
+                                </View>
+                              )}
 
                               {/* Третья строка показывается только для совмещенки */}
                               {lessonVariant.combined && (
