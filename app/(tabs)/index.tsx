@@ -365,6 +365,26 @@ export default function HomeScreen() {
       groups.push(groupLesson);
     });
 
+    // Сортировка пар в порядке: 1, 2, 3, К, 4, 5, 6
+    const getSortOrder = (lesson: LessonCard): number => {
+      const isClassHour = lesson.number === 'К' || lesson.room === 'К' || lesson.title === 'Классный час';
+      if (isClassHour) {
+        return 3.5;
+      }
+      const num = typeof lesson.number === 'number' 
+        ? lesson.number 
+        : (typeof lesson.number === 'string' && /^\d+$/.test(lesson.number) 
+          ? parseInt(lesson.number, 10) 
+          : 999);
+      return num;
+    };
+    
+    groups.sort((a, b) => {
+      const orderA = getSortOrder(a);
+      const orderB = getSortOrder(b);
+      return orderA - orderB;
+    });
+
     return groups;
   }, [currentSchedule]);
   const currentDateLabel = currentSchedule
@@ -1539,8 +1559,15 @@ export default function HomeScreen() {
                   <View style={[styles.bellCard, { width: cardWidth }]}>
                     <Text style={styles.bellCardTitle}>{item.title}</Text>
                     {item.times.map((t, idx) => {
-                      // Для расписания "С классным часом" на 4-й позиции (idx === 3) показываем "К"
-                      const pairNumber = item.id === 'withClass' && idx === 3 ? 'К' : `${idx + 1}`;
+
+                      let pairNumber: string;
+                      if (item.id === 'withClass' && idx === 3) {
+                        pairNumber = 'К';
+                      } else if (item.id === 'withClass' && idx > 3) {
+                        pairNumber = `${idx}`;
+                      } else {
+                        pairNumber = `${idx + 1}`;
+                      }
                       return (
                         <View key={idx} style={styles.bellRow}>
                           <View style={styles.bellNum}><Text style={styles.bellNumText}>{pairNumber}</Text></View>
