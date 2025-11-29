@@ -15,6 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import {
+  BackendError,
   deleteSubscription,
   getCabinets,
   getCachedCabinets,
@@ -28,6 +29,7 @@ import {
 } from '@/lib/backend';
 import { getCachedDeviceToken, getDeviceToken } from '@/lib/deviceTokenCache';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { isAxiosError } from 'axios';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, BackHandler, Dimensions, Easing, FlatList, Image, Linking, PanResponder, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import BurgerMenuIcon from '../../assets/BurgerMenu.svg';
@@ -140,6 +142,34 @@ const SCHEDULE_CACHE_KEY = '@cache/schedule-couples';
 const SCHEDULE_TARGET_CACHE_KEY = '@cache/schedule-target';
 
 type ScheduleCacheStore = Record<string, ScheduleDay[]>;
+
+const isNetworkError = (error: unknown): boolean => {
+  // Проверяем BackendError с status === 0 (нет ответа от сервера - сетевая ошибка)
+  if (error instanceof BackendError) {
+    return error.status === 0;
+  }
+  
+  // Альтернативная проверка BackendError (на случай проблем с instanceof)
+  if (error && typeof error === 'object' && 'name' in error && error.name === 'BackendError' && 'status' in error) {
+    return (error as { status: number }).status === 0;
+  }
+  
+  // Проверяем AxiosError
+  if (isAxiosError(error)) {
+    // Проверяем различные типы сетевых ошибок
+    if (!error.response) {
+      // Нет ответа от сервера - вероятно проблема с сетью
+      return true;
+    }
+    // Проверяем код ошибки
+    const code = error.code;
+    if (code === 'ECONNREFUSED' || code === 'ETIMEDOUT' || code === 'ENOTFOUND' || code === 'ERR_NETWORK' || code === 'ERR_NAME_NOT_RESOLVED') {
+      return true;
+    }
+  }
+  
+  return false;
+};
 
 const getTodayStart = () => {
   const today = new Date();
@@ -478,16 +508,20 @@ export default function HomeScreen() {
       if (!activeSubscriptions) {
         return;
       }
-      setSubscriptions(prev => {
-        const preservedLocal = prev.filter(subscription => !subscription.id.startsWith('remote-'));
-        const remoteItems = activeSubscriptions.map(title => ({
-          id: `remote-${title}`,
-          title,
-        }));
-        return [...remoteItems, ...preservedLocal];
-      });
+      const newSubscriptions = activeSubscriptions.map(title => ({
+        id: `remote-${title}`,
+        title,
+      }));
+      setSubscriptions(newSubscriptions);
     } catch (error) {
       console.error('Failed to load active subscriptions from backend', error);
+      // Проверяем, является ли это сетевой ошибкой
+      if (isNetworkError(error)) {
+        Alert.alert('Ошибка подключения к интернету', 'Не удалось загрузить подписки. Проверьте подключение к интернету.');
+      } else {
+        // Если это не сетевая ошибка, но все равно ошибка - показываем общее сообщение
+        Alert.alert('Ошибка', 'Не удалось загрузить подписки. Попробуйте позже.');
+      }
     }
   }, [getWebDeviceToken]);
 
@@ -773,6 +807,10 @@ export default function HomeScreen() {
         }
       } catch (error) {
         console.error('Failed to delete subscription on backend', error);
+        // Проверяем, является ли это сетевой ошибкой
+        if (isNetworkError(error)) {
+          Alert.alert('Нет интернета', 'Не удалось удалить подписку. Проверьте подключение к интернету.');
+        }
       }
     },
     [getWebDeviceToken]
@@ -1364,12 +1402,16 @@ export default function HomeScreen() {
                 return (
                   <View style={[styles.bellCard, { width: cardWidth }]}>
                     <Text style={styles.bellCardTitle}>{item.title}</Text>
-                    {item.times.map((t, idx) => (
-                      <View key={idx} style={styles.bellRow}>
-                        <View style={styles.bellNum}><Text style={styles.bellNumText}>{idx + 1}</Text></View>
-                        <Text style={styles.bellTime}>{t}</Text>
-                      </View>
-                    ))}
+                    {item.times.map((t, idx) => {
+                      // Для расписания "С классным часом" на 4-й позиции (idx === 3) показываем "К"
+                      const pairNumber = item.id === 'withClass' && idx === 3 ? 'К' : `${idx + 1}`;
+                      return (
+                        <View key={idx} style={styles.bellRow}>
+                          <View style={styles.bellNum}><Text style={styles.bellNumText}>{pairNumber}</Text></View>
+                          <Text style={styles.bellTime}>{t}</Text>
+                        </View>
+                      );
+                    })}
                   </View>
                 );
               }}
