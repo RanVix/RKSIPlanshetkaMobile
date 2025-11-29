@@ -323,3 +323,25 @@ export const subscribe = async (payload: SubscribePayload) => {
     normalizeAxiosError(error)
   }
 }
+
+export type NotificationResponse = {
+  id: number
+  name: string
+  couple: string
+  time_start: string
+  time_end: string
+  lesson: string
+  cabinet: string
+  teacher: string
+  group: string
+  combined: string
+}
+
+export const getNotifications = async (token: string) => {
+  try {
+    const response = await http.get<NotificationResponse[]>(`/notifications/${encodeURIComponent(token)}`)
+    return ensureSuccess(response)
+  } catch (error) {
+    normalizeAxiosError(error)
+  }
+}

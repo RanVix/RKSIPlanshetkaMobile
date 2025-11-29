@@ -23,8 +23,10 @@ import {
   getCachedTeachers,
   getCouples,
   getGroups,
+  getNotifications,
   getSubscribers,
   getTeachers,
+  NotificationResponse,
   subscribe,
 } from '@/lib/backend';
 import { getCachedDeviceToken, getDeviceToken } from '@/lib/deviceTokenCache';
@@ -140,28 +142,75 @@ const getDateValue = (value: string) => {
 
 const SCHEDULE_CACHE_KEY = '@cache/schedule-couples';
 const SCHEDULE_TARGET_CACHE_KEY = '@cache/schedule-target';
+const NOTIFICATIONS_CACHE_KEY = '@cache/notifications';
+
+type CachedNotification = NotificationResponse & {
+  cachedAt: number; // когда было закэшировано
+};
+
+const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+const readNotificationsCache = async (): Promise<Notification[]> => {
+  try {
+    const rawValue = await AsyncStorage.getItem(NOTIFICATIONS_CACHE_KEY);
+    if (!rawValue) {
+      return [];
+    }
+    const cached: CachedNotification[] = JSON.parse(rawValue);
+    if (!Array.isArray(cached)) {
+      return [];
+    }
+    
+    const now = Date.now();
+    // Фильтруем уведомления старше недели
+    const validNotifications = cached.filter(item => {
+      const age = now - item.cachedAt;
+      return age < ONE_WEEK_MS;
+    });
+    
+    // Если были удалены старые уведомления, обновляем кэш
+    if (validNotifications.length !== cached.length) {
+      await writeNotificationsCache(validNotifications);
+    }
+    
+    return validNotifications.map(({ cachedAt, ...notification }) => notification);
+  } catch (error) {
+    console.error('Failed to read notifications cache', error);
+    return [];
+  }
+};
+
+const writeNotificationsCache = async (notifications: Notification[]) => {
+  try {
+    const now = Date.now();
+    const cached: CachedNotification[] = notifications.map(notification => ({
+      ...notification,
+      cachedAt: now,
+    }));
+    const serialized = JSON.stringify(cached);
+    await AsyncStorage.setItem(NOTIFICATIONS_CACHE_KEY, serialized);
+  } catch (error) {
+    console.error('Failed to write notifications cache', error);
+  }
+};
 
 type ScheduleCacheStore = Record<string, ScheduleDay[]>;
 
 const isNetworkError = (error: unknown): boolean => {
-  // Проверяем BackendError с status === 0 (нет ответа от сервера - сетевая ошибка)
   if (error instanceof BackendError) {
     return error.status === 0;
   }
   
-  // Альтернативная проверка BackendError (на случай проблем с instanceof)
   if (error && typeof error === 'object' && 'name' in error && error.name === 'BackendError' && 'status' in error) {
     return (error as { status: number }).status === 0;
   }
   
   // Проверяем AxiosError
   if (isAxiosError(error)) {
-    // Проверяем различные типы сетевых ошибок
     if (!error.response) {
-      // Нет ответа от сервера - вероятно проблема с сетью
       return true;
     }
-    // Проверяем код ошибки
+
     const code = error.code;
     if (code === 'ECONNREFUSED' || code === 'ETIMEDOUT' || code === 'ENOTFOUND' || code === 'ERR_NETWORK' || code === 'ERR_NAME_NOT_RESOLVED') {
       return true;
@@ -251,6 +300,8 @@ const mapSearchTabToSubscriptionType = (type: SearchTab): 'cab' | 'group' | 'pre
 };
 type SubscriptionItem = { id: string; title: string; type?: SearchTab };
 
+type Notification = NotificationResponse;
+
 export default function HomeScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'calendar' | 'bell'>('calendar');
@@ -266,6 +317,7 @@ export default function HomeScreen() {
   const [subscriptionCooldown, setSubscriptionCooldown] = useState(0);
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [groups, setGroups] = useState<string[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [cabinets, setCabinets] = useState<string[]>([]);
   const [teachers, setTeachers] = useState<string[]>([]);
   const [currentScheduleTarget, setCurrentScheduleTarget] = useState<ScheduleTarget | null>(null);
@@ -331,6 +383,8 @@ export default function HomeScreen() {
   const menuAnimating = useRef(false);
   const scheduleRequestKeyRef = useRef<string | null>(null);
   const [showScheduleTargetHint, setShowScheduleTargetHint] = useState(false);
+
+  const allNotifications = notifications;
 
   useEffect(() => {
     let isMounted = true;
@@ -515,13 +569,41 @@ export default function HomeScreen() {
       setSubscriptions(newSubscriptions);
     } catch (error) {
       console.error('Failed to load active subscriptions from backend', error);
-      // Проверяем, является ли это сетевой ошибкой
       if (isNetworkError(error)) {
         Alert.alert('Ошибка подключения к интернету', 'Не удалось загрузить подписки. Проверьте подключение к интернету.');
       } else {
-        // Если это не сетевая ошибка, но все равно ошибка - показываем общее сообщение
         Alert.alert('Ошибка', 'Не удалось загрузить подписки. Попробуйте позже.');
       }
+    }
+  }, [getWebDeviceToken]);
+
+  const loadNotifications = useCallback(async () => {
+    // Сначала загружаем из кэша
+    try {
+      const cachedNotifications = await readNotificationsCache();
+      if (cachedNotifications.length > 0) {
+        setNotifications(cachedNotifications);
+      }
+    } catch (error) {
+      console.error('Failed to load notifications from cache', error);
+    }
+
+    try {
+      let token = await getCachedDeviceToken();
+      if (!token && Platform.OS === 'web') {
+        token = await getWebDeviceToken();
+      }
+      if (!token) {
+        return;
+      }
+      const freshNotifications = await getNotifications(token);
+      if (freshNotifications && Array.isArray(freshNotifications)) {
+        setNotifications(freshNotifications);
+        // Сохраняем в кэш после успешной загрузки
+        await writeNotificationsCache(freshNotifications);
+      }
+    } catch (error) {
+      console.error('Failed to load notifications from backend', error);
     }
   }, [getWebDeviceToken]);
 
@@ -535,6 +617,10 @@ export default function HomeScreen() {
   useEffect(() => {
     loadActiveSubscriptions();
   }, [loadActiveSubscriptions]);
+
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
 
   const toggleMenu = useCallback(() => {
     // Блокируем повторные вызовы во время анимации
@@ -1310,10 +1396,60 @@ export default function HomeScreen() {
         ) : (
           <View style={styles.notificationsContainer}>
             <Text style={styles.notificationsTitle}>Уведомления</Text>
-            <View style={styles.notificationsEmpty}>
-              <BellIcon width={24} height={24} style={styles.icon} />
-              <Text style={styles.notificationsEmptyText}>Пока нет уведомлений</Text>
-            </View>
+            {allNotifications.length === 0 ? (
+              <View style={styles.notificationsEmpty}>
+                <BellIcon width={24} height={24} style={styles.icon} />
+                <Text style={styles.notificationsEmptyText}>Пока нет уведомлений</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={allNotifications}
+                keyExtractor={(item) => `notification-${item.id}`}
+                contentContainerStyle={styles.notificationsList}
+                renderItem={({ item }) => (
+                  <View style={styles.notificationCard}>
+                    <View style={styles.notificationCardRow}>
+                      {/* Левая часть - время и номер пары */}
+                      <View style={styles.notificationTimeCol}>
+                        <Text style={styles.notificationStartTime}>{item.time_start}</Text>
+                        <Text style={styles.notificationEndTime}>{item.time_end}</Text>
+                        <View style={styles.notificationLessonNumberWrap}>
+                          <Text style={styles.notificationLessonNumber}>{item.couple}</Text>
+                        </View>
+                      </View>
+
+                      {/* Правая часть - информация */}
+                      <View style={styles.notificationCardContent}>
+                        {/* Иконка колокольчика с группой в правом верхнем углу */}
+                        <View style={styles.notificationBellBadge}>
+                          <BellIcon width={14} height={14} />
+                          <Text style={styles.notificationBellText}>{item.group}</Text>
+                        </View>
+
+                        <View style={styles.notificationInfoLine}>
+                          <UserIcon width={16} height={16} style={styles.icon} />
+                          <Text style={styles.notificationMetaText} numberOfLines={1}>{item.teacher}</Text>
+                        </View>
+
+                        <View style={styles.notificationInfoLine}>
+                          <CabinetIcon width={16} height={16} style={styles.icon} />
+                          <Text style={styles.notificationMetaText}>{item.cabinet}</Text>
+                        </View>
+
+                        {item.combined && (
+                          <View style={styles.notificationInfoLine}>
+                            <CombinedIcon width={16} height={16} style={styles.icon} />
+                            <Text style={styles.notificationMetaText} numberOfLines={1}>
+                              {item.combined} {item.cabinet ? `(${item.cabinet})` : ''}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+                )}
+              />
+            )}
           </View>
         )
       ) : (
@@ -2087,15 +2223,96 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     textAlign: 'center',
   },
+  notificationsList: {
+    paddingBottom: 24,
+  },
   notificationsEmpty: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 64,
   },
   notificationsEmptyText: {
     color: '#9CA3AF',
     fontSize: 14,
     marginTop: 8,
+  },
+  notificationCard: {
+    backgroundColor: '#171C22',
+    borderRadius: 16,
+    padding: 12,
+    paddingBottom: 12,
+    marginBottom: 12,
+    position: 'relative',
+    minHeight: 90,
+  },
+  notificationCardRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  notificationTimeCol: {
+    width: 64,
+    alignItems: 'flex-start',
+    paddingBottom: 32,
+    position: 'relative',
+    minHeight: 90,
+  },
+  notificationStartTime: {
+    color: '#F3F4F6',
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  notificationEndTime: {
+    color: '#9CA3AF',
+    fontSize: 15,
+    marginTop: 4,
+  },
+  notificationLessonNumberWrap: {
+    position: 'absolute',
+    top: 64,
+    left: 0,
+    height: 26,
+    width: 26,
+    borderRadius: 14,
+    backgroundColor: '#D1D5DB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notificationLessonNumber: {
+    color: '#1B2129',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  notificationCardContent: {
+    flex: 1,
+    position: 'relative',
+  },
+  notificationBellBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1B2129',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 4,
+  },
+  notificationBellText: {
+    color: '#F3F4F6',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  notificationInfoLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  notificationMetaText: {
+    color: '#E5E7EB',
+    fontSize: 13,
+    maxWidth: '90%',
   },
   subscriptionsContainer: {
     flex: 1,
