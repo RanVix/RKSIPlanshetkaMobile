@@ -65,6 +65,8 @@ type LessonCard = Lesson & {
 };
 
 const WEB_DEVICE_TOKEN_KEY = '@cache/web-device-token';
+const MENU_WIDTH = Math.min(Dimensions.get('window').width * 0.82, 360);
+const MENU_HIDDEN_OFFSET = MENU_WIDTH + 32;
 
 type FavoriteItem = {
   id: string;
@@ -392,7 +394,7 @@ export default function HomeScreen() {
         currentSchedule.corpus ? ` | ${currentSchedule.corpus} корпус` : ''
       }`
     : 'Расписание не выбрано';
-  const slideAnim = useRef(new Animated.Value(-Dimensions.get('window').width * 0.6)).current;
+  const slideAnim = useRef(new Animated.Value(-MENU_HIDDEN_OFFSET)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const searchSlideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
   const subscriptionPickerAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
@@ -403,6 +405,15 @@ export default function HomeScreen() {
   const menuAnimating = useRef(false);
   const scheduleRequestKeyRef = useRef<string | null>(null);
   const [showScheduleTargetHint, setShowScheduleTargetHint] = useState(false);
+  const [menuRendered, setMenuRendered] = useState(false);
+  const openSearchModal = useCallback(() => {
+    setSearchOpen(true);
+    Animated.timing(searchSlideAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [searchSlideAnim]);
 
   const allNotifications = notifications;
 
@@ -653,7 +664,7 @@ export default function HomeScreen() {
       menuAnimating.current = true;
       Animated.parallel([
         Animated.timing(slideAnim, {
-          toValue: -Dimensions.get('window').width * 0.6,
+          toValue: -MENU_HIDDEN_OFFSET,
           duration: 300,
           easing: Easing.bezier(0.4, 0.0, 0.2, 1),
           useNativeDriver: true,
@@ -666,11 +677,13 @@ export default function HomeScreen() {
         }),
       ]).start(() => {
         setMenuOpen(false);
+        setMenuRendered(false);
         menuAnimating.current = false;
       });
     } else {
       // Открываем меню
       menuAnimating.current = true;
+      setMenuRendered(true);
       setMenuOpen(true);
       Animated.parallel([
         Animated.timing(slideAnim, {
@@ -1137,101 +1150,103 @@ export default function HomeScreen() {
       )}
 
       {/* Боковое меню */}
-      <Animated.View 
-        style={[
-          styles.sideMenu,
-          { transform: [{ translateX: slideAnim }] }
-        ]}
-      >
-        {/* Лого и титульник */}
-        <TouchableOpacity
-          activeOpacity={0.7}
-          style={styles.menuHeader}
-          onPress={() => {
-          if (searchOpen) {
-            closeSearch();
-          }
-            setCurrentPage('home');
-            setActiveTab('calendar');
-            toggleMenu();
-          }}
+      {menuRendered && (
+        <Animated.View 
+          style={[
+            styles.sideMenu,
+            { transform: [{ translateX: slideAnim }] }
+          ]}
         >
-          <Image 
-            source={require('../../assets/logoburger.png')} 
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
-          <Text style={styles.appTitle}>РКСИ Планшетка</Text>
-        </TouchableOpacity>
+          {/* Лого и титульник */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            style={styles.menuHeader}
+            onPress={() => {
+            if (searchOpen) {
+              closeSearch();
+            }
+              setCurrentPage('home');
+              setActiveTab('calendar');
+              toggleMenu();
+            }}
+          >
+            <Image 
+              source={require('../../assets/logoburger.png')} 
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+            <Text style={styles.appTitle}>РКСИ Планшетка</Text>
+          </TouchableOpacity>
 
-        {/* Менюшка и кнопки */}
-        <View style={styles.menuItems}>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            style={styles.menuItem}
-            onPress={() => {
-              if (searchOpen) {
-                closeSearch();
-              }
-              setCurrentPage('subscriptions');
-              toggleMenu();
-            }}
-          >
-            <Image source={require('../../assets/BellIcon.png')} style={styles.menuIcon} />
-            <Text style={styles.menuItemText}>Подписки</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            style={styles.menuItem}
-            onPress={() => {
-              if (searchOpen) {
-                closeSearch();
-              }
-              setCurrentPage('bells');
-              toggleMenu();
-            }}
-          >
-            <Image source={require('../../assets/TimeIcon.png')} style={styles.menuIcon} />
-            <Text style={styles.menuItemText}>
-              Расписание звонков
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            style={styles.menuItem}
-            onPress={() => {
-              if (searchOpen) {
-                closeSearch();
-              }
-              setCurrentPage('themes');
-              toggleMenu();
-            }}
-          >
-            <Image source={require('../../assets/ThemeIcon.png')} style={styles.menuIcon} />
-            <Text style={styles.menuItemText}>Темы</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            style={styles.menuItem}
-            onPress={async () => {
-              const url = 'https://drive.google.com/drive/folders/1kUYiSAafghhYR0ARyXwPW1HZPpHcFIag?usp=sharing';
-              const supported = await Linking.canOpenURL(url);
-              if (supported) {
-                await Linking.openURL(url);
-              }
-              toggleMenu();
-            }}
-          >
-            <Image source={require('../../assets/URLIcon.png')} style={styles.menuIcon} />
-            <Text style={styles.menuItemText}>Файл планшетки</Text>
-          </TouchableOpacity>
-        </View>
+          {/* Менюшка и кнопки */}
+          <View style={styles.menuItems}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={styles.menuItem}
+              onPress={() => {
+                if (searchOpen) {
+                  closeSearch();
+                }
+                setCurrentPage('subscriptions');
+                toggleMenu();
+              }}
+            >
+              <Image source={require('../../assets/BellIcon.png')} style={styles.menuIcon} />
+              <Text style={styles.menuItemText}>Подписки</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={styles.menuItem}
+              onPress={() => {
+                if (searchOpen) {
+                  closeSearch();
+                }
+                setCurrentPage('bells');
+                toggleMenu();
+              }}
+            >
+              <Image source={require('../../assets/TimeIcon.png')} style={styles.menuIcon} />
+              <Text style={styles.menuItemText}>
+                Расписание звонков
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={styles.menuItem}
+              onPress={() => {
+                if (searchOpen) {
+                  closeSearch();
+                }
+                setCurrentPage('themes');
+                toggleMenu();
+              }}
+            >
+              <Image source={require('../../assets/ThemeIcon.png')} style={styles.menuIcon} />
+              <Text style={styles.menuItemText}>Темы</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={styles.menuItem}
+              onPress={async () => {
+                const url = 'https://drive.google.com/drive/folders/1kUYiSAafghhYR0ARyXwPW1HZPpHcFIag?usp=sharing';
+                const supported = await Linking.canOpenURL(url);
+                if (supported) {
+                  await Linking.openURL(url);
+                }
+                toggleMenu();
+              }}
+            >
+              <Image source={require('../../assets/URLIcon.png')} style={styles.menuIcon} />
+              <Text style={styles.menuItemText}>Файл планшетки</Text>
+            </TouchableOpacity>
+          </View>
 
-        {/* Футер бокового меню */}
-        <View style={styles.menuFooter}>
-          <Text style={styles.footerText}>v0.1.0 by Yarovich, RanVix</Text>
-        </View>
-      </Animated.View>
+          {/* Футер бокового меню */}
+          <View style={styles.menuFooter}>
+            <Text style={styles.footerText}>v0.1.0 by Yarovich, RanVix</Text>
+          </View>
+        </Animated.View>
+      )}
       {/* Верхняя часть (иконка бургера и поиск) */}
       <View style={styles.topBar}>
         <View>
@@ -1247,14 +1262,7 @@ export default function HomeScreen() {
         <TouchableOpacity
           style={styles.searchBox}
           activeOpacity={0.7}
-          onPress={() => {
-            setSearchOpen(true);
-            Animated.timing(searchSlideAnim, {
-              toValue: 0,
-              duration: 300,
-              useNativeDriver: true,
-            }).start();
-          }}
+          onPress={openSearchModal}
         >
           <TextInput
             placeholder="Выберите расписание"
@@ -1268,12 +1276,16 @@ export default function HomeScreen() {
       </View>
 
       {showScheduleTargetHint && !currentScheduleTarget && currentPage === 'home' && activeTab === 'calendar' && (
-        <View style={styles.targetHint}>
+        <TouchableOpacity
+          style={styles.targetHint}
+          activeOpacity={0.8}
+          onPress={openSearchModal}
+        >
           <Text style={styles.targetHintTitle}>Начните с выбора группы</Text>
           <Text style={styles.targetHintText}>
-            Нажмите на строку выше, выберите группу и мы сохраним её, чтобы показывать пары даже без интернета.
+            Можно нажать на строку выше или прямо на эту подсказку, выбрать группу и мы сохраним её, чтобы показывать пары даже без интернета.
           </Text>
-        </View>
+        </TouchableOpacity>
       )}
 
       {currentPage === 'home' ? (
@@ -2012,11 +2024,12 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     bottom: 0,
-    width: Dimensions.get('window').width * 0.6,
+    maxWidth: MENU_WIDTH,
+    height: Dimensions.get('window').height,
     backgroundColor: '#191C21',
     zIndex: 1002,
     paddingTop: 60,
-    paddingHorizontal: 12,
+    paddingHorizontal: 20,
     paddingBottom: 30,
   },
   menuHeader: {
