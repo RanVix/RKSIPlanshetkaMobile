@@ -335,6 +335,7 @@ export type NotificationResponse = {
   teacher: string
   group: string
   combined: string
+  created_at?: string | null
 }
 
 export const getNotifications = async (token: string) => {

@@ -24,7 +24,7 @@ const API_BASE_URL =
 
 export const http = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 15000,
   headers: { Accept: 'application/json' },
   validateStatus: () => true,
 })

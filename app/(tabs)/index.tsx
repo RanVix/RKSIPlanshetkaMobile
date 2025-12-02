@@ -129,6 +129,33 @@ const formatDateLabel = (dateString: string) => {
   return `${dayLabel}, ${datePart}`;
 };
 
+const formatNotificationTimestamp = (value?: string | null) => {
+  if (!value) {
+    return '';
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  const timePart = date.toLocaleTimeString('ru-RU', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  if (isSameDay(date, new Date())) {
+    return `Сегодня, ${timePart}`;
+  }
+
+  const datePart = date.toLocaleDateString('ru-RU', {
+    day: '2-digit',
+    month: 'short',
+  });
+
+  return `${datePart}, ${timePart}`;
+};
+
 const getScheduleTargetLabel = (target?: ScheduleTarget | null) => {
   if (!target) {
     return '';
@@ -416,6 +443,100 @@ export default function HomeScreen() {
   }, [searchSlideAnim]);
 
   const allNotifications = notifications;
+  // const previewNotifications = useMemo<Notification[]>(() => [
+  //   {
+  //     id: -1,
+  //     name: 'демка математики',
+  //     couple: '1',
+  //     time_start: '08:00',
+  //     time_end: '09:35',
+  //     lesson: 'Математика (лекция)',
+  //     cabinet: '201',
+  //     teacher: 'Иванова И.И.',
+  //     group: 'ИКС-31',
+  //     combined: 'ИКС-32',
+  //     created_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+  //   },
+  //   {
+  //     id: -2,
+  //     name: 'демка баз данных',
+  //     couple: '3',
+  //     time_start: '12:10',
+  //     time_end: '13:45',
+  //     lesson: 'Проектирование БД',
+  //     cabinet: '494',
+  //     teacher: 'Петров С.А.',
+  //     group: 'ИС-22',
+  //     combined: '',
+  //     created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+  //   },
+  // ], []);
+  // const shouldShowPreviewNotifications = allNotifications.length === 0;
+
+  const NotificationCard = ({ notification }: { notification: Notification }) => {
+    const createdAtLabel = formatNotificationTimestamp(notification.created_at);
+    const titleLabel = notification.name?.trim() || notification.group?.trim() || 'Подписка';
+    const groupLabel = notification.group?.trim();
+    const teacherLabel = notification.teacher?.trim();
+    const cabinetLabel = notification.cabinet?.trim();
+    const combinedLabel = notification.combined?.trim();
+  
+    return (
+      <View style={styles.notificationCard}>
+        <View style={styles.notificationHeader}>
+          <Text style={styles.notificationGroupTitle} numberOfLines={1}>{titleLabel}</Text>
+          {createdAtLabel ? (
+            <Text style={styles.notificationDateText}>{createdAtLabel}</Text>
+          ) : null}
+        </View>
+  
+        <View style={styles.notificationCardRow}>
+          <View style={styles.notificationTimeCol}>
+            <Text style={styles.notificationStartTime}>{notification.time_start}</Text>
+            <Text style={styles.notificationEndTime}>{notification.time_end}</Text>
+            <View style={styles.notificationLessonNumberWrap}>
+              <Text style={styles.notificationLessonNumber}>{notification.couple}</Text>
+            </View>
+          </View>
+  
+          <View style={[
+            styles.notificationCardContent,
+            groupLabel && styles.notificationCardContentWithBadge,
+          ]}>
+            {groupLabel && (
+              <View style={styles.notificationGroupBadge}>
+                <BellIcon width={14} height={14} />
+                <Text style={styles.notificationGroupBadgeText} numberOfLines={1}>{groupLabel}</Text>
+              </View>
+            )}
+  
+            {!!teacherLabel && (
+              <View style={styles.notificationInfoLine}>
+                <UserIcon width={16} height={16} style={styles.icon} />
+                <Text style={styles.notificationMetaText} numberOfLines={1}>{teacherLabel}</Text>
+              </View>
+            )}
+  
+            {!!cabinetLabel && (
+              <View style={styles.notificationInfoLine}>
+                <CabinetIcon width={16} height={16} style={styles.icon} />
+                <Text style={styles.notificationMetaText} numberOfLines={1}>{cabinetLabel}</Text>
+              </View>
+            )}
+  
+            {!!combinedLabel && (
+              <View style={styles.notificationInfoLine}>
+                <CombinedIcon width={16} height={16} style={styles.icon} />
+                <Text style={styles.notificationMetaText} numberOfLines={1}>
+                  {combinedLabel}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
+    );
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -1429,59 +1550,18 @@ export default function HomeScreen() {
           <View style={styles.notificationsContainer}>
             <Text style={styles.notificationsTitle}>Уведомления</Text>
             {allNotifications.length === 0 ? (
-              <View style={styles.notificationsEmpty}>
-                <BellIcon width={24} height={24} style={styles.icon} />
-                <Text style={styles.notificationsEmptyText}>Пока нет уведомлений</Text>
-              </View>
-            ) : (
-              <FlatList
-                data={allNotifications}
-                keyExtractor={(item) => `notification-${item.id}`}
-                contentContainerStyle={styles.notificationsList}
-                renderItem={({ item }) => (
-                  <View style={styles.notificationCard}>
-                    <View style={styles.notificationCardRow}>
-                      {/* Левая часть - время и номер пары */}
-                      <View style={styles.notificationTimeCol}>
-                        <Text style={styles.notificationStartTime}>{item.time_start}</Text>
-                        <Text style={styles.notificationEndTime}>{item.time_end}</Text>
-                        <View style={styles.notificationLessonNumberWrap}>
-                          <Text style={styles.notificationLessonNumber}>{item.couple}</Text>
-                        </View>
-                      </View>
-
-                      {/* Правая часть - информация */}
-                      <View style={styles.notificationCardContent}>
-                        {/* Иконка колокольчика с группой в правом верхнем углу */}
-                        <View style={styles.notificationBellBadge}>
-                          <BellIcon width={14} height={14} />
-                          <Text style={styles.notificationBellText}>{item.group}</Text>
-                        </View>
-
-                        <View style={styles.notificationInfoLine}>
-                          <UserIcon width={16} height={16} style={styles.icon} />
-                          <Text style={styles.notificationMetaText} numberOfLines={1}>{item.teacher}</Text>
-                        </View>
-
-                        <View style={styles.notificationInfoLine}>
-                          <CabinetIcon width={16} height={16} style={styles.icon} />
-                          <Text style={styles.notificationMetaText}>{item.cabinet}</Text>
-                        </View>
-
-                        {item.combined && (
-                          <View style={styles.notificationInfoLine}>
-                            <CombinedIcon width={16} height={16} style={styles.icon} />
-                            <Text style={styles.notificationMetaText} numberOfLines={1}>
-                              {item.combined} {item.cabinet ? `(${item.cabinet})` : ''}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-                  </View>
-                )}
-              />
-            )}
+          <View style={styles.notificationsEmpty}>
+            <BellIcon width={24} height={24} style={styles.icon} />
+            <Text style={styles.notificationsEmptyText}>Пока нет уведомлений</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={allNotifications}
+            keyExtractor={(item) => `notification-${item.id}`}
+            contentContainerStyle={styles.notificationsList}
+            renderItem={({ item }) => <NotificationCard notification={item} />}
+          />
+        )}
           </View>
         )
       ) : (
@@ -2266,6 +2346,9 @@ const styles = StyleSheet.create({
   notificationsList: {
     paddingBottom: 24,
   },
+  notificationsEmptyWrapper: {
+    flex: 1,
+  },
   notificationsEmpty: {
     flex: 1,
     alignItems: 'center',
@@ -2277,25 +2360,54 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 8,
   },
+  notificationsPreviewSection: {
+    marginTop: 16,
+  },
+  notificationsPreviewTitle: {
+    color: '#9CA3AF',
+    fontSize: 12,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
   notificationCard: {
     backgroundColor: '#171C22',
     borderRadius: 16,
     padding: 12,
-    paddingBottom: 12,
     marginBottom: 12,
     position: 'relative',
     minHeight: 90,
   },
+  notificationCardPreview: {
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  notificationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  notificationGroupTitle: {
+    color: '#F3F4F6',
+    fontSize: 15,
+    fontWeight: '600',
+    flex: 1,
+  },
+  notificationDateText: {
+    color: '#9CA3AF',
+    fontSize: 12,
+  },
   notificationCardRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    marginTop: 8,
   },
   notificationTimeCol: {
     width: 64,
     alignItems: 'flex-start',
     paddingBottom: 32,
     position: 'relative',
-    minHeight: 90,
   },
   notificationStartTime: {
     color: '#F3F4F6',
@@ -2326,28 +2438,33 @@ const styles = StyleSheet.create({
   notificationCardContent: {
     flex: 1,
     position: 'relative',
+    paddingTop: 4,
   },
-  notificationBellBadge: {
+  notificationCardContentWithBadge: {
+    paddingTop: 32,
+  },
+  notificationGroupBadge: {
     position: 'absolute',
-    top: 0,
+    top: -28,
     right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#1B2129',
     borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 6,
   },
-  notificationBellText: {
+  notificationGroupBadgeText: {
     color: '#F3F4F6',
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '600',
   },
   notificationInfoLine: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 6,
+    marginTop: 4,
+    gap: 6,
   },
   notificationMetaText: {
     color: '#E5E7EB',
