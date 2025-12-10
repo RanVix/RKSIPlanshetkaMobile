@@ -2,7 +2,7 @@
   "expo": {
     "name": "Планшетка",
     "slug": "RKSIPlanshetka",
-    "version": "0.1.0",
+    "version": "0.3.1b",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "rksiplanshetka",

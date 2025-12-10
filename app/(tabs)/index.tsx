@@ -483,13 +483,18 @@ export default function HomeScreen() {
   
     return (
       <View style={styles.notificationCard}>
+        {/* Заголовок с бейджем группы в правом верхнем углу */}
         <View style={styles.notificationHeader}>
           <Text style={styles.notificationGroupTitle} numberOfLines={1}>{titleLabel}</Text>
-          {createdAtLabel ? (
-            <Text style={styles.notificationDateText}>{createdAtLabel}</Text>
-          ) : null}
+          {groupLabel && (
+            <View style={styles.notificationGroupBadge}>
+              <BellIcon width={12} height={12} />
+              <Text style={styles.notificationGroupBadgeText} numberOfLines={1}>{groupLabel}</Text>
+            </View>
+          )}
         </View>
   
+        {/* Основное содержимое */}
         <View style={styles.notificationCardRow}>
           <View style={styles.notificationTimeCol}>
             <Text style={styles.notificationStartTime}>{notification.time_start}</Text>
@@ -499,41 +504,40 @@ export default function HomeScreen() {
             </View>
           </View>
   
-          <View style={[
-            styles.notificationCardContent,
-            groupLabel && styles.notificationCardContentWithBadge,
-          ]}>
-            {groupLabel && (
-              <View style={styles.notificationGroupBadge}>
-                <BellIcon width={14} height={14} />
-                <Text style={styles.notificationGroupBadgeText} numberOfLines={1}>{groupLabel}</Text>
-              </View>
-            )}
+          <View style={styles.notificationCardContent}>
+            <View style={styles.notificationInfoContainer}>
+              {!!teacherLabel && (
+                <View style={styles.notificationInfoLine}>
+                  <UserIcon width={14} height={14} style={styles.icon} />
+                  <Text style={styles.notificationMetaText} numberOfLines={1}>{teacherLabel}</Text>
+                </View>
+              )}
   
-            {!!teacherLabel && (
-              <View style={styles.notificationInfoLine}>
-                <UserIcon width={16} height={16} style={styles.icon} />
-                <Text style={styles.notificationMetaText} numberOfLines={1}>{teacherLabel}</Text>
-              </View>
-            )}
+              {!!cabinetLabel && (
+                <View style={styles.notificationInfoLine}>
+                  <CabinetIcon width={14} height={14} style={styles.icon} />
+                  <Text style={styles.notificationMetaText} numberOfLines={1}>{cabinetLabel}</Text>
+                </View>
+              )}
   
-            {!!cabinetLabel && (
-              <View style={styles.notificationInfoLine}>
-                <CabinetIcon width={16} height={16} style={styles.icon} />
-                <Text style={styles.notificationMetaText} numberOfLines={1}>{cabinetLabel}</Text>
-              </View>
-            )}
-  
-            {!!combinedLabel && (
-              <View style={styles.notificationInfoLine}>
-                <CombinedIcon width={16} height={16} style={styles.icon} />
-                <Text style={styles.notificationMetaText} numberOfLines={1}>
-                  {combinedLabel}
-                </Text>
-              </View>
-            )}
+              {!!combinedLabel && (
+                <View style={styles.notificationInfoLine}>
+                  <CombinedIcon width={14} height={14} style={styles.icon} />
+                  <Text style={styles.notificationMetaText} numberOfLines={1}>
+                    {combinedLabel}
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
+  
+        {/* Дата в правом нижнем углу */}
+        {createdAtLabel && (
+          <View style={styles.notificationDateContainer}>
+            <Text style={styles.notificationDateText}>{createdAtLabel}</Text>
+          </View>
+        )}
       </View>
     );
   };
@@ -1364,7 +1368,7 @@ export default function HomeScreen() {
 
           {/* Футер бокового меню */}
           <View style={styles.menuFooter}>
-            <Text style={styles.footerText}>v0.1.0 by Yarovich, RanVix</Text>
+            <Text style={styles.footerText}>v0.3.1b by Yarovich, RanVix</Text>
           </View>
         </Animated.View>
       )}
@@ -2148,7 +2152,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   menuFooter: {
-    paddingBottom: 8,
+    paddingBottom: 14,
     alignItems: 'center',
   },
   footerText: {
@@ -2375,8 +2379,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 12,
     marginBottom: 12,
+    paddingBottom: 28,
     position: 'relative',
-    minHeight: 90,
+    minHeight: 70,
   },
   notificationCardPreview: {
     borderWidth: 1,
@@ -2386,7 +2391,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
+    marginBottom: 6,
   },
   notificationGroupTitle: {
     color: '#F3F4F6',
@@ -2398,10 +2403,16 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     fontSize: 12,
   },
+  notificationDateContainer: {
+    position: 'absolute',
+    bottom: 8,
+    right: 12,
+  },
   notificationCardRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginTop: 8,
+    marginTop: 0,
+    paddingBottom: 20,
   },
   notificationTimeCol: {
     width: 64,
@@ -2438,15 +2449,15 @@ const styles = StyleSheet.create({
   notificationCardContent: {
     flex: 1,
     position: 'relative',
-    paddingTop: 4,
   },
   notificationCardContentWithBadge: {
     paddingTop: 32,
   },
+  notificationInfoContainer: {
+    flex: 1,
+    paddingTop: 0,
+  },
   notificationGroupBadge: {
-    position: 'absolute',
-    top: -28,
-    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#1B2129',
@@ -2454,6 +2465,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     gap: 6,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
   },
   notificationGroupBadgeText: {
     color: '#F3F4F6',
@@ -2463,7 +2476,7 @@ const styles = StyleSheet.create({
   notificationInfoLine: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 6,
     gap: 6,
   },
   notificationMetaText: {
@@ -2540,7 +2553,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 34,
+    bottom: 60,
     alignItems: 'center',
     justifyContent: 'center',
   },

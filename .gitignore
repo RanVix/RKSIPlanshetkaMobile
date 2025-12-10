@@ -3,6 +3,9 @@
 # dependencies
 node_modules/
 
+#Временно
+package-lock.json
+
 # Expo
 .expo/
 dist/
