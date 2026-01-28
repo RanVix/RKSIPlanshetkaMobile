@@ -1366,7 +1366,7 @@ export default function HomeScreen() {
 
           {/* Футер бокового меню */}
           <View style={[styles.menuFooter, { paddingBottom: 20 }]}> 
-            <Text style={styles.footerText}>v0.3.1b by Yarovich, RanVix</Text>
+            <Text style={styles.footerText}>v0.3.2b by Yarovich, RanVix</Text>
           </View>
         </Animated.View>
       )}
