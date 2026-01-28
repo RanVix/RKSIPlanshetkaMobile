@@ -346,3 +346,13 @@ export const getNotifications = async (token: string) => {
     normalizeAxiosError(error)
   }
 }
+
+export const getLatestRelease = async () => {
+  try {
+    // Указываем string в генерике, так как бэк возвращает версию текстом
+    const response = await http.get<string>('/latest-release')
+    return ensureSuccess(response)
+  } catch (error) {
+    normalizeAxiosError(error)
+  }
+}

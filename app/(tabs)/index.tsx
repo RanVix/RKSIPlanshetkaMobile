@@ -475,27 +475,31 @@ export default function HomeScreen() {
 
   const NotificationCard = ({ notification }: { notification: Notification }) => {
     const createdAtLabel = formatNotificationTimestamp(notification.created_at);
-    const titleLabel = notification.name?.trim() || notification.group?.trim() || 'Подписка';
     const groupLabel = notification.group?.trim();
     const teacherLabel = notification.teacher?.trim();
     const cabinetLabel = notification.cabinet?.trim();
     const combinedLabel = notification.combined?.trim();
   
     return (
-      <View style={styles.notificationCard}>
-        {/* Заголовок с бейджем группы в правом верхнем углу */}
-        <View style={styles.notificationHeader}>
-          <Text style={styles.notificationGroupTitle} numberOfLines={1}>{titleLabel}</Text>
-          {groupLabel && (
-            <View style={styles.notificationGroupBadge}>
-              <BellIcon width={12} height={12} />
-              <Text style={styles.notificationGroupBadgeText} numberOfLines={1}>{groupLabel}</Text>
-            </View>
-          )}
-        </View>
+      <View style={[styles.notificationCard, { paddingBottom: 12 }]}> 
+        {/* Группа в правом верхнем углу (абсолют) */}
+        {groupLabel && (
+          <View style={[styles.notificationGroupBadge, { position: 'absolute', top: 12, right: 12, zIndex: 1 }]}>
+            <BellIcon width={12} height={12} />
+            <Text style={styles.notificationGroupBadgeText} numberOfLines={1}>{groupLabel}</Text>
+          </View>
+        )}
   
-        {/* Основное содержимое */}
+        {/* Дата в правом нижнем углу (абсолют) — теперь на уровне с номером пары */}
+        {createdAtLabel && (
+          <View style={{ position: 'absolute', bottom: 12, right: 12 }}>
+            <Text style={styles.notificationDateText}>{createdAtLabel}</Text>
+          </View>
+        )}
+  
+        {/* Основное содержимое карточки */}
         <View style={styles.notificationCardRow}>
+          {/* Левая колонка со временем и номером пары */}
           <View style={styles.notificationTimeCol}>
             <Text style={styles.notificationStartTime}>{notification.time_start}</Text>
             <Text style={styles.notificationEndTime}>{notification.time_end}</Text>
@@ -504,6 +508,7 @@ export default function HomeScreen() {
             </View>
           </View>
   
+          {/* Правая колонка с основной информацией */}
           <View style={styles.notificationCardContent}>
             <View style={styles.notificationInfoContainer}>
               {!!teacherLabel && (
@@ -531,13 +536,6 @@ export default function HomeScreen() {
             </View>
           </View>
         </View>
-  
-        {/* Дата в правом нижнем углу */}
-        {createdAtLabel && (
-          <View style={styles.notificationDateContainer}>
-            <Text style={styles.notificationDateText}>{createdAtLabel}</Text>
-          </View>
-        )}
       </View>
     );
   };
@@ -1367,7 +1365,7 @@ export default function HomeScreen() {
           </View>
 
           {/* Футер бокового меню */}
-          <View style={styles.menuFooter}>
+          <View style={[styles.menuFooter, { paddingBottom: 20 }]}> 
             <Text style={styles.footerText}>v0.3.1b by Yarovich, RanVix</Text>
           </View>
         </Animated.View>
