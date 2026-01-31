@@ -174,7 +174,7 @@ const SCHEDULE_TARGET_CACHE_KEY = '@cache/schedule-target';
 const NOTIFICATIONS_CACHE_KEY = '@cache/notifications';
 
 type CachedNotification = NotificationResponse & {
-  cachedAt: number; // когда было закэшировано
+  cachedAt: number;
 };
 
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -191,13 +191,11 @@ const readNotificationsCache = async (): Promise<Notification[]> => {
     }
     
     const now = Date.now();
-    // Фильтруем уведомления старше недели
     const validNotifications = cached.filter(item => {
       const age = now - item.cachedAt;
       return age < ONE_WEEK_MS;
     });
     
-    // Если были удалены старые уведомления, обновляем кэш
     if (validNotifications.length !== cached.length) {
       await writeNotificationsCache(validNotifications);
     }
@@ -234,7 +232,6 @@ const isNetworkError = (error: unknown): boolean => {
     return (error as { status: number }).status === 0;
   }
   
-  // Проверяем AxiosError
   if (isAxiosError(error)) {
     if (!error.response) {
       return true;
@@ -354,6 +351,11 @@ export default function HomeScreen() {
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [selectedScheduleIndex, setSelectedScheduleIndex] = useState(0);
+  
+  // Ref для горизонтального списка пар
+  const scheduleListRef = useRef<FlatList>(null);
+  const SCREEN_WIDTH = Dimensions.get('window').width;
+
   const currentSchedule = useMemo(
     () => scheduleDays[selectedScheduleIndex] ?? null,
     [scheduleDays, selectedScheduleIndex]
@@ -361,17 +363,15 @@ export default function HomeScreen() {
   const scheduleTargetLabel = getScheduleTargetLabel(currentScheduleTarget);
   const canGoPrevDay = selectedScheduleIndex > 0;
   const canGoNextDay = selectedScheduleIndex < scheduleDays.length - 1;
-  const currentScheduleFooterLabel =
-    currentSchedule?.fromType === 0 ? 'расписание' : currentSchedule ? 'планшетка' : null;
-  const currentScheduleList = useMemo<LessonCard[]>(() => {
-    if (!currentSchedule) {
-      return [];
-    }
+
+  // Изменено: теперь это функция, которая принимает день и возвращает сгруппированные пары
+  const getLessonsForDay = useCallback((day: ScheduleDay | null): LessonCard[] => {
+    if (!day) return [];
 
     const groups: LessonCard[] = [];
     const map = new Map<string, LessonCard>();
 
-    currentSchedule.couples.forEach(lesson => {
+    day.couples.forEach(lesson => {
       const numberKey = `${lesson.number}`.trim();
       const titleKey = (lesson.title ?? '').trim().toLowerCase();
       const groupKey = `${numberKey}__${titleKey}`;
@@ -394,7 +394,6 @@ export default function HomeScreen() {
       groups.push(groupLesson);
     });
 
-    // Сортировка пар в порядке: 1, 2, 3, К, 4, 5, 6
     const getSortOrder = (lesson: LessonCard): number => {
       const isClassHour = lesson.number === 'К' || lesson.room === 'К' || lesson.title === 'Классный час';
       if (isClassHour) {
@@ -415,12 +414,14 @@ export default function HomeScreen() {
     });
 
     return groups;
-  }, [currentSchedule]);
+  }, []);
+
   const currentDateLabel = currentSchedule
     ? `${formatDateLabel(currentSchedule.date)}${
         currentSchedule.corpus ? ` | ${currentSchedule.corpus} корпус` : ''
       }`
     : 'Расписание не выбрано';
+    
   const slideAnim = useRef(new Animated.Value(-MENU_HIDDEN_OFFSET)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const searchSlideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
@@ -433,6 +434,20 @@ export default function HomeScreen() {
   const scheduleRequestKeyRef = useRef<string | null>(null);
   const [showScheduleTargetHint, setShowScheduleTargetHint] = useState(false);
   const [menuRendered, setMenuRendered] = useState(false);
+
+  // Синхронизация скролла при клике на стрелки
+  useEffect(() => {
+    if (scheduleListRef.current && scheduleDays.length > 0) {
+      // Проверка на валидность индекса перед скроллом
+      if (selectedScheduleIndex >= 0 && selectedScheduleIndex < scheduleDays.length) {
+        scheduleListRef.current.scrollToIndex({
+          index: selectedScheduleIndex,
+          animated: true,
+        });
+      }
+    }
+  }, [selectedScheduleIndex, scheduleDays]);
+
   const openSearchModal = useCallback(() => {
     setSearchOpen(true);
     Animated.timing(searchSlideAnim, {
@@ -443,35 +458,6 @@ export default function HomeScreen() {
   }, [searchSlideAnim]);
 
   const allNotifications = notifications;
-  // const previewNotifications = useMemo<Notification[]>(() => [
-  //   {
-  //     id: -1,
-  //     name: 'демка математики',
-  //     couple: '1',
-  //     time_start: '08:00',
-  //     time_end: '09:35',
-  //     lesson: 'Математика (лекция)',
-  //     cabinet: '201',
-  //     teacher: 'Иванова И.И.',
-  //     group: 'ИКС-31',
-  //     combined: 'ИКС-32',
-  //     created_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
-  //   },
-  //   {
-  //     id: -2,
-  //     name: 'демка баз данных',
-  //     couple: '3',
-  //     time_start: '12:10',
-  //     time_end: '13:45',
-  //     lesson: 'Проектирование БД',
-  //     cabinet: '494',
-  //     teacher: 'Петров С.А.',
-  //     group: 'ИС-22',
-  //     combined: '',
-  //     created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-  //   },
-  // ], []);
-  // const shouldShowPreviewNotifications = allNotifications.length === 0;
 
   const NotificationCard = ({ notification }: { notification: Notification }) => {
     const createdAtLabel = formatNotificationTimestamp(notification.created_at);
@@ -482,7 +468,6 @@ export default function HomeScreen() {
   
     return (
       <View style={[styles.notificationCard, { paddingBottom: 12 }]}> 
-        {/* Группа в правом верхнем углу (абсолют) */}
         {groupLabel && (
           <View style={[styles.notificationGroupBadge, { position: 'absolute', top: 12, right: 12, zIndex: 1 }]}>
             <BellIcon width={12} height={12} />
@@ -490,16 +475,13 @@ export default function HomeScreen() {
           </View>
         )}
   
-        {/* Дата в правом нижнем углу (абсолют) — теперь на уровне с номером пары */}
         {createdAtLabel && (
           <View style={{ position: 'absolute', bottom: 12, right: 12 }}>
             <Text style={styles.notificationDateText}>{createdAtLabel}</Text>
           </View>
         )}
   
-        {/* Основное содержимое карточки */}
         <View style={styles.notificationCardRow}>
-          {/* Левая колонка со временем и номером пары */}
           <View style={styles.notificationTimeCol}>
             <Text style={styles.notificationStartTime}>{notification.time_start}</Text>
             <Text style={styles.notificationEndTime}>{notification.time_end}</Text>
@@ -508,7 +490,6 @@ export default function HomeScreen() {
             </View>
           </View>
   
-          {/* Правая колонка с основной информацией */}
           <View style={styles.notificationCardContent}>
             <View style={styles.notificationInfoContainer}>
               {!!teacherLabel && (
@@ -732,7 +713,6 @@ export default function HomeScreen() {
   }, [getWebDeviceToken]);
 
   const loadNotifications = useCallback(async () => {
-    // Сначала загружаем из кэша
     try {
       const cachedNotifications = await readNotificationsCache();
       if (cachedNotifications.length > 0) {
@@ -753,7 +733,6 @@ export default function HomeScreen() {
       const freshNotifications = await getNotifications(token);
       if (freshNotifications && Array.isArray(freshNotifications)) {
         setNotifications(freshNotifications);
-        // Сохраняем в кэш после успешной загрузки
         await writeNotificationsCache(freshNotifications);
       }
     } catch (error) {
@@ -777,13 +756,11 @@ export default function HomeScreen() {
   }, [loadNotifications]);
 
   const toggleMenu = useCallback(() => {
-    // Блокируем повторные вызовы во время анимации
     if (menuAnimating.current) {
       return;
     }
 
     if (menuOpen) {
-      // Закрываем меню
       menuAnimating.current = true;
       Animated.parallel([
         Animated.timing(slideAnim, {
@@ -804,7 +781,6 @@ export default function HomeScreen() {
         menuAnimating.current = false;
       });
     } else {
-      // Открываем меню
       menuAnimating.current = true;
       setMenuRendered(true);
       setMenuOpen(true);
@@ -878,7 +854,6 @@ export default function HomeScreen() {
     };
   }, []);
 
-  // Фильтрация данных по тексту поиска
   const filteredData = useMemo(() => {
     const data = searchTab === 'group' ? groups : searchTab === 'cabinet' ? cabinets : teachers;
     if (!searchText.trim()) {
@@ -898,7 +873,6 @@ export default function HomeScreen() {
   }, [subscriptionPickerTab, subscriptionPickerSearch, groups, cabinets, teachers]);
   const subscriptionLimitReached = subscriptions.length >= 10;
 
-  // Загрузка избранного из кэша
   useEffect(() => {
     const loadFavorites = async () => {
       try {
@@ -913,7 +887,6 @@ export default function HomeScreen() {
     loadFavorites();
   }, []);
 
-  // Сохранение избранного в кэш
   const saveFavorites = async (newFavorites: FavoriteItem[]) => {
     try {
       await AsyncStorage.setItem('favorites', JSON.stringify(newFavorites));
@@ -923,7 +896,6 @@ export default function HomeScreen() {
     }
   };
 
-  // Добавление в избранное
   const addToFavorites = (type: SearchTab, name: string) => {
     const id = `${type}-${name}`;
     const exists = favorites.find(f => f.id === id);
@@ -933,13 +905,11 @@ export default function HomeScreen() {
     }
   };
 
-  // Удаление из избранного
   const removeFromFavorites = (id: string) => {
     const newFavorites = favorites.filter(f => f.id !== id);
     saveFavorites(newFavorites);
   };
 
-  // Проверка, находится ли элемент в избранном
   const isFavorite = (type: SearchTab, name: string) => {
     const id = `${type}-${name}`;
     return favorites.some(f => f.id === id);
@@ -1049,7 +1019,6 @@ export default function HomeScreen() {
         }
       } catch (error) {
         console.error('Failed to delete subscription on backend', error);
-        // Проверяем, является ли это сетевой ошибкой
         if (isNetworkError(error)) {
           Alert.alert('Нет интернета', 'Не удалось удалить подписку. Проверьте подключение к интернету.');
         }
@@ -1058,7 +1027,6 @@ export default function HomeScreen() {
     [getWebDeviceToken]
   );
 
-  // Закрытие поиска
   const closeSearch = useCallback(() => {
     Animated.timing(searchSlideAnim, {
       toValue: Dimensions.get('window').height,
@@ -1111,7 +1079,6 @@ export default function HomeScreen() {
     });
   }, [subscriptionPickerAnim]);
 
-  // Закрытие поиска свайпом вниз
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
@@ -1160,7 +1127,6 @@ export default function HomeScreen() {
     })
   ).current;
 
-  // Сбрасываем состояние при смене страницы
   useEffect(() => {
     if (currentPage === 'bells') {
       setBellsListReady(false);
@@ -1186,7 +1152,6 @@ export default function HomeScreen() {
     return () => clearTimeout(timeout);
   }, [subscriptionCooldown]);
 
-  // Центрируем камеру на "Обычное расписание" после того, как список готов
   useEffect(() => {
     if (currentPage === 'bells' && bellsListReady && !hasScrolledToInitial.current && bellsFlatListRef.current) {
       requestAnimationFrame(() => {
@@ -1212,7 +1177,6 @@ export default function HomeScreen() {
     }
   }, [currentPage, bellsListReady]);
 
-  // Анимация переключателя при изменении активной вкладки
   useEffect(() => {
     Animated.timing(togglePosition, {
       toValue: activeTab === 'calendar' ? 0 : 1,
@@ -1221,10 +1185,8 @@ export default function HomeScreen() {
     }).start();
   }, [activeTab, togglePosition]);
 
-  // Обработка кнопки "Назад" (только для Android)
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      // Если поиск открыт - закрываем его
       if (subscriptionPickerOpen) {
         closeSubscriptionPicker();
         return true;
@@ -1234,20 +1196,17 @@ export default function HomeScreen() {
         return true;
       }
       
-      // Если меню открыто - закрываем его
       if (menuOpen && !menuAnimating.current) {
         toggleMenu();
         return true;
       }
       
-      // Если не на home-page - переключаем на home-page
       if (currentPage !== 'home') {
         setCurrentPage('home');
         setActiveTab('calendar');
         return true;
       }
       
-      // Если уже на home-page - выход из приложения
       return false;
     });
 
@@ -1256,7 +1215,6 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Оверлэй */}
       {menuOpen && (
         <Animated.View 
           style={[
@@ -1272,7 +1230,6 @@ export default function HomeScreen() {
         </Animated.View>
       )}
 
-      {/* Боковое меню */}
       {menuRendered && (
         <Animated.View 
           style={[
@@ -1280,7 +1237,6 @@ export default function HomeScreen() {
             { transform: [{ translateX: slideAnim }] }
           ]}
         >
-          {/* Лого и титульник */}
           <TouchableOpacity
             activeOpacity={0.7}
             style={styles.menuHeader}
@@ -1301,7 +1257,6 @@ export default function HomeScreen() {
             <Text style={styles.appTitle}>РКСИ Планшетка</Text>
           </TouchableOpacity>
 
-          {/* Менюшка и кнопки */}
           <View style={styles.menuItems}>
             <TouchableOpacity
               activeOpacity={0.7}
@@ -1364,13 +1319,12 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Футер бокового меню */}
           <View style={[styles.menuFooter, { paddingBottom: 20 }]}> 
             <Text style={styles.footerText}>v0.3.2b by Yarovich, RanVix</Text>
           </View>
         </Animated.View>
       )}
-      {/* Верхняя часть (иконка бургера и поиск) */}
+      
       <View style={styles.topBar}>
         <View>
           <TouchableOpacity
@@ -1414,7 +1368,6 @@ export default function HomeScreen() {
       {currentPage === 'home' ? (
         activeTab === 'calendar' ? (
           <>
-            {/* Дата */}
             <View style={styles.dateRow}>
               <TouchableOpacity
                 style={[styles.dateArrowButton, !canGoPrevDay && styles.dateArrowButtonDisabled]}
@@ -1435,26 +1388,34 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Список пар */}
+            {/* ОСНОВНОЙ ГОРИЗОНТАЛЬНЫЙ СПИСОК ПАР */}
             <FlatList
-              data={currentScheduleList}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.listContent}
-              refreshing={scheduleLoading}
-              onRefresh={() => {
-                if (currentScheduleTarget?.name) {
-                  loadSchedule(currentScheduleTarget);
+              ref={scheduleListRef}
+              data={scheduleDays}
+              keyExtractor={(item) => item.date}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(ev) => {
+                const newIndex = Math.round(ev.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+                if (newIndex !== selectedScheduleIndex && newIndex >= 0 && newIndex < scheduleDays.length) {
+                  setSelectedScheduleIndex(newIndex);
                 }
               }}
-              ListFooterComponent={
-                currentScheduleFooterLabel ? (
-                  <View style={styles.footerInline}>
-                    <Text style={styles.footerLinkText}>{currentScheduleFooterLabel}</Text>
-                  </View>
-                ) : null
-              }
+              getItemLayout={(_, index) => ({
+                length: SCREEN_WIDTH,
+                offset: SCREEN_WIDTH * index,
+                index,
+              })}
+              initialScrollIndex={selectedScheduleIndex}
+              onScrollToIndexFailed={info => {
+                const wait = new Promise(resolve => setTimeout(resolve, 500));
+                wait.then(() => {
+                  scheduleListRef.current?.scrollToIndex({ index: info.index, animated: true });
+                });
+              }}
               ListEmptyComponent={(
-                <View style={styles.scheduleEmpty}>
+                <View style={[styles.scheduleEmpty, { width: SCREEN_WIDTH }]}>
                   {scheduleLoading ? (
                     <ActivityIndicator color="#F3F4F6" />
                   ) : (
@@ -1464,85 +1425,108 @@ export default function HomeScreen() {
                   )}
                 </View>
               )}
-              renderItem={({ item }) => {
-                const lessonVariants = item.groupedLessons;
-                const primaryLesson = lessonVariants[0];
-                const hasCombinedBadge = lessonVariants.some(lesson => Boolean(lesson.combined));
+              renderItem={({ item: day }) => {
+                const dayLessons = getLessonsForDay(day);
+                
+                const showFooter = dayLessons.length > 0; 
+                const footerLabel = day.fromType === 0 ? 'расписание' : 'планшетка';
 
                 return (
-                  <View style={styles.card}>
-                    <View style={styles.cardRow}>
-                      {/* Время и номер */}
-                      <View style={styles.timeCol}>
-                        <Text style={styles.startTime}>{primaryLesson.startTime}</Text>
-                        {primaryLesson.endTime ? (
-                          <Text style={styles.endTime}>{primaryLesson.endTime}</Text>
-                        ) : null}
-                        <View style={styles.lessonNumberWrap}>
-                          <Text style={styles.lessonNumber}>{primaryLesson.number}</Text>
-                        </View>
-                      </View>
-
-                      {/* Контент пары */}
-                      <View style={styles.cardContent}>
-                        <View style={styles.titleBar}>
-                          <View style={styles.titleBarInner}>
-                            <Text style={styles.titleText} numberOfLines={2}>{primaryLesson.title}</Text>
-                            {hasCombinedBadge && (
-                              <View style={styles.badge}>
-                                <Text style={styles.badgeText}>Совмещёнка</Text>
-                              </View>
-                            )}
+                  <View style={{ width: SCREEN_WIDTH }}>
+                    <FlatList
+                      data={dayLessons}
+                      keyExtractor={(lesson) => lesson.id}
+                      contentContainerStyle={styles.listContent}
+                      refreshing={scheduleLoading}
+                      onRefresh={() => {
+                        if (currentScheduleTarget?.name) {
+                          loadSchedule(currentScheduleTarget);
+                        }
+                      }}
+                      ListFooterComponent={
+                        showFooter ? (
+                          <View style={styles.footerInline}>
+                            <Text style={styles.footerLinkText}>{footerLabel}</Text>
                           </View>
-                        </View>
+                        ) : null
+                      }
+                      renderItem={({ item }) => {
+                        const lessonVariants = item.groupedLessons;
+                        const primaryLesson = lessonVariants[0];
+                        const hasCombinedBadge = lessonVariants.some(lesson => Boolean(lesson.combined));
 
-                        {lessonVariants.map((lessonVariant, index) => {
-                          // Находим кабинет совмещенной группы
-                          const combinedGroupCabinet = lessonVariant.combined
-                            ? lessonVariants.find(v => v.group === lessonVariant.combined)?.room || '—'
-                            : null;
-                          
-                          // Показываем группу, если поиск не по группам
-                          const shouldShowGroup = currentScheduleTarget?.type !== 'group';
-
-                          return (
-                            <View
-                              key={lessonVariant.id}
-                              style={index === 0 ? undefined : styles.lessonVariantDivider}
-                            >
-                              <View style={styles.infoLine}>
-                                <UserIcon width={16} height={16} style={styles.icon} />
-                                <Text style={styles.metaText} numberOfLines={1}>{lessonVariant.teacher || '—'}</Text>
+                        return (
+                          <View style={styles.card}>
+                            <View style={styles.cardRow}>
+                              <View style={styles.timeCol}>
+                                <Text style={styles.startTime}>{primaryLesson.startTime}</Text>
+                                {primaryLesson.endTime ? (
+                                  <Text style={styles.endTime}>{primaryLesson.endTime}</Text>
+                                ) : null}
+                                <View style={styles.lessonNumberWrap}>
+                                  <Text style={styles.lessonNumber}>{primaryLesson.number}</Text>
+                                </View>
                               </View>
 
-                              <View style={styles.infoLine}>
-                                <CabinetIcon width={16} height={16} style={styles.icon} />
-                                <Text style={styles.metaText}>{lessonVariant.room || '—'}</Text>
+                              <View style={styles.cardContent}>
+                                <View style={styles.titleBar}>
+                                  <View style={styles.titleBarInner}>
+                                    <Text style={styles.titleText} numberOfLines={2}>{primaryLesson.title}</Text>
+                                    {hasCombinedBadge && (
+                                      <View style={styles.badge}>
+                                        <Text style={styles.badgeText}>Совмещёнка</Text>
+                                      </View>
+                                    )}
+                                  </View>
+                                </View>
+
+                                {lessonVariants.map((lessonVariant, index) => {
+                                  const combinedGroupCabinet = lessonVariant.combined
+                                    ? lessonVariants.find(v => v.group === lessonVariant.combined)?.room || '—'
+                                    : null;
+                                  
+                                  const shouldShowGroup = currentScheduleTarget?.type !== 'group';
+
+                                  return (
+                                    <View
+                                      key={lessonVariant.id}
+                                      style={index === 0 ? undefined : styles.lessonVariantDivider}
+                                    >
+                                      <View style={styles.infoLine}>
+                                        <UserIcon width={16} height={16} style={styles.icon} />
+                                        <Text style={styles.metaText} numberOfLines={1}>{lessonVariant.teacher || '—'}</Text>
+                                      </View>
+
+                                      <View style={styles.infoLine}>
+                                        <CabinetIcon width={16} height={16} style={styles.icon} />
+                                        <Text style={styles.metaText}>{lessonVariant.room || '—'}</Text>
+                                      </View>
+
+                                      {shouldShowGroup && lessonVariant.group && (
+                                        <View style={styles.infoLine}>
+                                          <CombinedIcon width={16} height={16} style={styles.icon} />
+                                          <Text style={styles.metaText} numberOfLines={1}>{lessonVariant.group}</Text>
+                                        </View>
+                                      )}
+
+                                      {lessonVariant.combined && (
+                                        <View style={[styles.infoLine, styles.groupInfoLine]}>
+                                          <CombinedIcon width={16} height={16} style={styles.icon} />
+                                          <Text style={styles.metaText} numberOfLines={1}>
+                                            {lessonVariant.combined}
+                                            {combinedGroupCabinet && combinedGroupCabinet !== '—' ? ` · ${combinedGroupCabinet}` : ''}
+                                          </Text>
+                                        </View>
+                                      )}
+                                    </View>
+                                  );
+                                })}
                               </View>
-
-                              {/* Группа показывается при поиске по преподавателям или кабинетам */}
-                              {shouldShowGroup && lessonVariant.group && (
-                                <View style={styles.infoLine}>
-                                  <CombinedIcon width={16} height={16} style={styles.icon} />
-                                  <Text style={styles.metaText} numberOfLines={1}>{lessonVariant.group}</Text>
-                                </View>
-                              )}
-
-                              {/* Третья строка показывается только для совмещенки */}
-                              {lessonVariant.combined && (
-                                <View style={[styles.infoLine, styles.groupInfoLine]}>
-                                  <CombinedIcon width={16} height={16} style={styles.icon} />
-                                  <Text style={styles.metaText} numberOfLines={1}>
-                                    {lessonVariant.combined}
-                                    {combinedGroupCabinet && combinedGroupCabinet !== '—' ? ` · ${combinedGroupCabinet}` : ''}
-                                  </Text>
-                                </View>
-                              )}
                             </View>
-                          );
-                        })}
-                      </View>
-                    </View>
+                          </View>
+                        );
+                      }}
+                    />
                   </View>
                 );
               }}
@@ -1622,7 +1606,6 @@ export default function HomeScreen() {
             <Text style={styles.bellsTitle}>Расписание звонков</Text>
             <FlatList
               ref={bellsFlatListRef}
-              // Данные для расписания звонков (пока демка или нет хз)
               data={[
                 {
                   id: 'short',
@@ -1702,7 +1685,6 @@ export default function HomeScreen() {
         )
       )}
 
-      {/* Поиск - выдвигается снизу */}
       {searchOpen && (
         <Animated.View
           style={[
@@ -1712,7 +1694,6 @@ export default function HomeScreen() {
             },
           ]}
         >
-          {/* Белая полоска для закрытия */}
           <TouchableOpacity
             style={styles.searchHandle}
             activeOpacity={0.7}
@@ -1722,7 +1703,6 @@ export default function HomeScreen() {
             <View style={styles.searchHandleBar} />
           </TouchableOpacity>
 
-          {/* Верхняя панель с бургер меню и поиском */}
           <View style={styles.searchTopBar}>
             <View>
               <TouchableOpacity
@@ -1751,9 +1731,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Контент поиска */}
           <View style={styles.searchContent} {...panResponder.panHandlers}>
-            {/* Секция Избранное */}
             <View style={styles.favoritesSection}>
               <View style={styles.favoritesHeader}>
                 <FavoriteIcon width={19} height={22} />
@@ -1778,7 +1756,6 @@ export default function HomeScreen() {
               )}
             </View>
 
-            {/* Секция с переключателем */}
             <View style={styles.searchSection}>
               <View style={styles.searchSectionHeader}>
                 <View style={styles.searchSectionTitleRow}>
@@ -1850,7 +1827,6 @@ export default function HomeScreen() {
                 </View>
               </View>
 
-              {/* Список элементов */}
               <FlatList
                 data={filteredData}
                 keyExtractor={(item) => `${searchTab}-${item}`}
@@ -2019,7 +1995,6 @@ export default function HomeScreen() {
       )}
 
       {currentPage === 'home' && (
-        /* Снизу смена окон */
         <View style={styles.bottomTabs}>
           <View style={styles.toggleContainer}>
             <Animated.View
@@ -2066,7 +2041,6 @@ export default function HomeScreen() {
   );
 }
 
-// Тут уже CSS пошел
 const styles = StyleSheet.create({
   container: {
     flex: 1,

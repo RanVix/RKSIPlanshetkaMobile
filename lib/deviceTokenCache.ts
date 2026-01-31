@@ -14,75 +14,108 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import firebase from '@react-native-firebase/app'
-import messaging from '@react-native-firebase/messaging'
-import { Platform } from 'react-native'
+// lib/deviceTokenCache.ts
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NativeModules, Platform } from 'react-native';
 
-const DEVICE_TOKEN_CACHE_KEY = '@cache/device-token'
+const DEVICE_TOKEN_KEY = 'device_token_v1';
 
-const AuthorizationStatus = messaging.AuthorizationStatus
-
-const isAuthorized = (status: number) =>
-  status === AuthorizationStatus.AUTHORIZED ||
-  status === AuthorizationStatus.PROVISIONAL
-
-const cacheToken = async (token: string | null) => {
-  if (!token) return
-  await AsyncStorage.setItem(DEVICE_TOKEN_CACHE_KEY, token)
-}
-
-export const getCachedDeviceToken = async () => {
-  const token = await AsyncStorage.getItem(DEVICE_TOKEN_CACHE_KEY)
-  return token
-}
-
-export const clearCachedDeviceToken = async () => {
-  await AsyncStorage.removeItem(DEVICE_TOKEN_CACHE_KEY)
-}
-
-const ensurePermissions = async () => {
+export const getCachedDeviceToken = async (): Promise<string | null> => {
   try {
-    // Инициализация Firebase(проверка)
-    if (!firebase.apps.length) {
-      throw new Error('Firebase app is not initialized')
-    }
-
-    // registerDeviceForRemoteMessages() на IOS
-    if (Platform.OS === 'ios') {
-      await messaging().registerDeviceForRemoteMessages()
-    }
-    
-    const currentStatus = await messaging().hasPermission()
-
-    if (isAuthorized(currentStatus)) {
-      return currentStatus
-    }
-
-    const requestedStatus = await messaging().requestPermission()
-
-    if (!isAuthorized(requestedStatus)) {
-      throw new Error('Push notification permission was not granted')
-    }
-
-    return requestedStatus
-  } catch (error) {
-    console.error('Firebase messaging error:', error)
-    throw error
+    return await AsyncStorage.getItem(DEVICE_TOKEN_KEY);
+  } catch (e) {
+    console.warn('Failed to read cached device token', e);
+    return null;
   }
-}
+};
 
-export const getDeviceToken = async (forceRefresh = false) => {
-  if (!forceRefresh) {
-    const cached = await getCachedDeviceToken()
-    if (cached) {
-      return cached
+export const writeCachedDeviceToken = async (token: string | null) => {
+  try {
+    if (token == null) {
+      await AsyncStorage.removeItem(DEVICE_TOKEN_KEY);
+    } else {
+      await AsyncStorage.setItem(DEVICE_TOKEN_KEY, token);
     }
+  } catch (e) {
+    console.warn('Failed to write cached device token', e);
+  }
+};
+
+/**
+ * Проверка — доступен ли нативный модуль RNFBAppModule.
+ * Это безопасно — мы не трогаем @react-native-firebase на уровне модуля.
+ */
+const isNativeRNFBAvailable = (): boolean => {
+  if (Platform.OS === 'web') return false;
+  try {
+    const { RNFBAppModule } = NativeModules as any;
+    return !!RNFBAppModule;
+  } catch {
+    return false;
+  }
+};
+
+const tryResolveNativeMessaging = () => {
+  if (!isNativeRNFBAvailable()) {
+    console.warn('react-native-firebase native app module not available — skipping native messaging.');
+    return null;
   }
 
-  await ensurePermissions()
-  const token = await messaging().getToken()
-  await cacheToken(token)
+  try {
+    // require динамически и безопасно
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const messenger = require('@react-native-firebase/messaging');
 
-  return token
-}
+    // messenger может быть undefined/null — проверяем перед доступом к .default
+    if (!messenger) return null;
+
+    // если пакет использует default export — вернём его, иначе сам объект
+    return (messenger && (messenger.default ?? messenger)) || null;
+  } catch (e: any) {
+    // ловим любые ошибки (включая ошибки инициализации нативного модуля)
+    console.warn('react-native-firebase/messaging is not available at runtime:', e?.message ?? e);
+    return null;
+  }
+};
+
+/**
+ * Получить токен устройства (native). Возвращает null если native messaging недоступен.
+ */
+export const getDeviceToken = async (): Promise<string | null> => {
+  if (Platform.OS === 'web') {
+    console.warn('getDeviceToken(): running on web — use getWebDeviceToken() if needed.');
+    return null;
+  }
+
+  const messaging = tryResolveNativeMessaging();
+  if (!messaging) return null;
+
+  try {
+    const messagingClient = typeof messaging === 'function' ? messaging() : messaging;
+
+    if (typeof messagingClient.requestPermission === 'function') {
+      try {
+        await messagingClient.requestPermission();
+      } catch (err) {
+        console.warn('FCM permission request failed or was denied:', err);
+      }
+    }
+
+    if (typeof messagingClient.getToken === 'function') {
+      const token = await messagingClient.getToken();
+      if (token) await writeCachedDeviceToken(token);
+      return token ?? null;
+    }
+
+    console.warn('messaging client does not expose getToken()');
+    return null;
+  } catch (e) {
+    console.error('Failed to obtain device token from native messaging:', e);
+    return null;
+  }
+};
+
+export const getWebDeviceToken = async (): Promise<string | null> => {
+  console.warn('getWebDeviceToken(): not implemented. Implement using Firebase Web SDK if needed.');
+  return null;
+};
