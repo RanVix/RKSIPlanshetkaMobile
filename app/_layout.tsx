@@ -14,33 +14,41 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+import * as NavigationBar from 'expo-navigation-bar';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-// Предотвращаем авто-скрытие сплэш-скрина, пока грузятся шрифты/данные
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   useEffect(() => {
-    // Скрываем сплэш-скрин после рендера
     SplashScreen.hideAsync();
+    
+    // Настройка системной панели для Android
+    if (Platform.OS === 'android') {
+      // Делаем панель прозрачной, чтобы она подхватила цвет фона View
+      NavigationBar.setPositionAsync('absolute');
+      NavigationBar.setBackgroundColorAsync('#00000000'); // Полная прозрачность
+      // Делаем иконки (назад/домой) светлыми
+      NavigationBar.setButtonStyleAsync('light');
+    }
   }, []);
 
   return (
     <SafeAreaProvider>
-      {/* View с фоном нужен, чтобы закрасить области за пределами контента (те самые полоски) */}
+      {/* Главный контейнер с твоим цветом фона */}
       <View style={{ flex: 1, backgroundColor: '#0F1115' }}>
-        {/* light-content делает текст в статус-баре белым */}
         <StatusBar style="light" backgroundColor="#0F1115" translucent />
         
         <Stack
           screenOptions={{
-            headerShown: false, // Прячем дефолтные заголовки Expo
-            contentStyle: { backgroundColor: '#0F1115' }, // Задаем фон для всех экранов
+            headerShown: false,
+            // flex: 1 здесь гарантирует, что контент растянется на всю высоту
+            contentStyle: { backgroundColor: '#0F1115', flex: 1 },
           }}
         >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

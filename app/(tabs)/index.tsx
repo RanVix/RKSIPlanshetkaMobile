@@ -23,15 +23,17 @@ import {
   getCachedTeachers,
   getCouples,
   getGroups,
+  getLatestRelease,
   getNotifications,
   getSubscribers,
   getTeachers,
   NotificationResponse,
-  subscribe,
+  subscribe
 } from '@/lib/backend';
 import { getCachedDeviceToken, getDeviceToken } from '@/lib/deviceTokenCache';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isAxiosError } from 'axios';
+import Constants from 'expo-constants';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, BackHandler, Dimensions, Easing, FlatList, Image, Linking, PanResponder, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import BurgerMenuIcon from '../../assets/BurgerMenu.svg';
@@ -1185,6 +1187,21 @@ export default function HomeScreen() {
     }).start();
   }, [activeTab, togglePosition]);
 
+  const CURRENT_APP_VERSION = `v${Constants.expoConfig?.version}`;
+  const [newVersion, setNewVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkVersion = async () => {
+      try {
+        const serverVersion = await getLatestRelease();
+        if (serverVersion && serverVersion !== CURRENT_APP_VERSION) {
+          setNewVersion(serverVersion);
+        }
+      } catch (e) { console.error(e); }
+    };
+    checkVersion();
+  }, []);
+
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
       if (subscriptionPickerOpen) {
@@ -1319,8 +1336,26 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* 2. Вставка кнопки обновления прямо над футером */}
+          {newVersion && (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={{
+                backgroundColor: '#0A84FF',
+                padding: 10,
+                marginHorizontal: 20,
+                borderRadius: 10,
+                alignItems: 'center',
+                marginBottom: 10
+              }}
+              onPress={() => Linking.openURL('https://github.com/RanVix/RKSIPlanshetkaMobile/releases')}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>Новая версия: {newVersion}</Text>
+            </TouchableOpacity>
+          )}
+
           <View style={[styles.menuFooter, { paddingBottom: 20 }]}> 
-            <Text style={styles.footerText}>v0.3.2b by Yarovich, RanVix</Text>
+            <Text style={styles.footerText}>{CURRENT_APP_VERSION} by Yarovich, RanVix</Text>
           </View>
         </Animated.View>
       )}

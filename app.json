@@ -2,7 +2,7 @@
   "expo": {
     "name": "Планшетка",
     "slug": "RKSIPlanshetka",
-    "version": "0.3.2b",
+    "version": "0.4.0b",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "rksiplanshetka",
@@ -77,7 +77,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "078dd5bf-5e0a-4d18-b428-49b32c2e10db"
+        "projectId": "eb59a7fe-198d-4747-a9fd-24ec718fef78"
       }
     }
   }
