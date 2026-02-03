@@ -28,27 +28,44 @@ import {
   getSubscribers,
   getTeachers,
   NotificationResponse,
-  subscribe
-} from '@/lib/backend';
-import { getCachedDeviceToken, getDeviceToken } from '@/lib/deviceTokenCache';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { isAxiosError } from 'axios';
-import Constants from 'expo-constants';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, BackHandler, Dimensions, Easing, FlatList, Image, Linking, PanResponder, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import BurgerMenuIcon from '../../assets/BurgerMenu.svg';
-import CabinetIcon from '../../assets/Cabinet.svg';
-import CabinetBlackIcon from '../../assets/CabinetBlack.svg';
-import CombinedIcon from '../../assets/Combined.svg';
-import CombinedIconBlackIcon from '../../assets/CombinedBlack.svg';
-import FavoriteIcon from '../../assets/Favorite.svg';
-import SearchIcon from '../../assets/SearchIcon.svg';
-import ThemeIcon from '../../assets/ThemeIcon.svg';
-import UserIcon from '../../assets/User.svg';
-import UserIconBlackIcon from '../../assets/UserIconBlack.svg';
-import BellIcon from '../../assets/WhiteBell.svg';
-import CalendarIcon from '../../assets/calendarik.svg';
-import TrashIcon from '../../assets/trash.svg';
+  subscribe,
+} from "@/lib/backend";
+import { getCachedDeviceToken, getDeviceToken } from "@/lib/deviceTokenCache";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { isAxiosError } from "axios";
+import Constants from "expo-constants";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Animated,
+  BackHandler,
+  Dimensions,
+  Easing,
+  FlatList,
+  Image,
+  Linking,
+  PanResponder,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import BurgerMenuIcon from "../../assets/BurgerMenu.svg";
+import CabinetIcon from "../../assets/Cabinet.svg";
+import CabinetBlackIcon from "../../assets/CabinetBlack.svg";
+import CombinedIcon from "../../assets/Combined.svg";
+import CombinedIconBlackIcon from "../../assets/CombinedBlack.svg";
+import FavoriteIcon from "../../assets/Favorite.svg";
+import SearchIcon from "../../assets/SearchIcon.svg";
+import ThemeIcon from "../../assets/ThemeIcon.svg";
+import UserIcon from "../../assets/User.svg";
+import UserIconBlackIcon from "../../assets/UserIconBlack.svg";
+import BellIcon from "../../assets/WhiteBell.svg";
+import CalendarIcon from "../../assets/calendarik.svg";
+import TrashIcon from "../../assets/trash.svg";
 
 type Lesson = {
   id: string;
@@ -66,17 +83,17 @@ type LessonCard = Lesson & {
   groupedLessons: Lesson[];
 };
 
-const WEB_DEVICE_TOKEN_KEY = '@cache/web-device-token';
-const MENU_WIDTH = Math.min(Dimensions.get('window').width * 0.82, 360);
+const WEB_DEVICE_TOKEN_KEY = "@cache/web-device-token";
+const MENU_WIDTH = Math.min(Dimensions.get("window").width * 0.82, 360);
 const MENU_HIDDEN_OFFSET = MENU_WIDTH + 32;
 
 type FavoriteItem = {
   id: string;
-  type: 'group' | 'cabinet' | 'teacher';
+  type: "group" | "cabinet" | "teacher";
   name: string;
 };
 
-type SearchTab = 'group' | 'cabinet' | 'teacher';
+type SearchTab = "group" | "cabinet" | "teacher";
 
 type ScheduleDay = {
   date: string;
@@ -91,7 +108,9 @@ type ScheduleTarget = {
 };
 
 const isSameDay = (a: Date, b: Date) =>
-  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  a.getFullYear() === b.getFullYear() &&
+  a.getMonth() === b.getMonth() &&
+  a.getDate() === b.getDate();
 
 const isTomorrow = (date: Date) => {
   const tomorrow = new Date();
@@ -102,7 +121,8 @@ const isTomorrow = (date: Date) => {
   return isSameDay(dateToCheck, tomorrow);
 };
 
-const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
+const capitalize = (value: string) =>
+  value.charAt(0).toUpperCase() + value.slice(1);
 
 const formatDateLabel = (dateString: string) => {
   const date = new Date(dateString);
@@ -111,48 +131,48 @@ const formatDateLabel = (dateString: string) => {
   }
   const today = new Date();
   let dayLabel: string;
-  
+
   if (isSameDay(date, today)) {
-    dayLabel = 'Сегодня';
+    dayLabel = "Сегодня";
   } else if (isTomorrow(date)) {
-    dayLabel = 'Завтра';
+    dayLabel = "Завтра";
   } else {
     dayLabel = capitalize(
-      date.toLocaleDateString('ru-RU', {
-        weekday: 'long',
-      })
+      date.toLocaleDateString("ru-RU", {
+        weekday: "long",
+      }),
     );
   }
-  
-  const datePart = date.toLocaleDateString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
+
+  const datePart = date.toLocaleDateString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
   });
   return `${dayLabel}, ${datePart}`;
 };
 
 const formatNotificationTimestamp = (value?: string | null) => {
   if (!value) {
-    return '';
+    return "";
   }
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return '';
+    return "";
   }
 
-  const timePart = date.toLocaleTimeString('ru-RU', {
-    hour: '2-digit',
-    minute: '2-digit',
+  const timePart = date.toLocaleTimeString("ru-RU", {
+    hour: "2-digit",
+    minute: "2-digit",
   });
 
   if (isSameDay(date, new Date())) {
     return `Сегодня, ${timePart}`;
   }
 
-  const datePart = date.toLocaleDateString('ru-RU', {
-    day: '2-digit',
-    month: 'short',
+  const datePart = date.toLocaleDateString("ru-RU", {
+    day: "2-digit",
+    month: "short",
   });
 
   return `${datePart}, ${timePart}`;
@@ -160,9 +180,14 @@ const formatNotificationTimestamp = (value?: string | null) => {
 
 const getScheduleTargetLabel = (target?: ScheduleTarget | null) => {
   if (!target) {
-    return '';
+    return "";
   }
-  const prefix = target.type === 'group' ? 'Группа' : target.type === 'cabinet' ? 'Кабинет' : 'Преподаватель';
+  const prefix =
+    target.type === "group"
+      ? "Группа"
+      : target.type === "cabinet"
+        ? "Кабинет"
+        : "Преподаватель";
   return `${prefix}: ${target.name}`;
 };
 
@@ -171,9 +196,9 @@ const getDateValue = (value: string) => {
   return Number.isNaN(time) ? 0 : time;
 };
 
-const SCHEDULE_CACHE_KEY = '@cache/schedule-couples';
-const SCHEDULE_TARGET_CACHE_KEY = '@cache/schedule-target';
-const NOTIFICATIONS_CACHE_KEY = '@cache/notifications';
+const SCHEDULE_CACHE_KEY = "@cache/schedule-couples";
+const SCHEDULE_TARGET_CACHE_KEY = "@cache/schedule-target";
+const NOTIFICATIONS_CACHE_KEY = "@cache/notifications";
 
 type CachedNotification = NotificationResponse & {
   cachedAt: number;
@@ -191,20 +216,22 @@ const readNotificationsCache = async (): Promise<Notification[]> => {
     if (!Array.isArray(cached)) {
       return [];
     }
-    
+
     const now = Date.now();
-    const validNotifications = cached.filter(item => {
+    const validNotifications = cached.filter((item) => {
       const age = now - item.cachedAt;
       return age < ONE_WEEK_MS;
     });
-    
+
     if (validNotifications.length !== cached.length) {
       await writeNotificationsCache(validNotifications);
     }
-    
-    return validNotifications.map(({ cachedAt, ...notification }) => notification);
+
+    return validNotifications.map(
+      ({ cachedAt, ...notification }) => notification,
+    );
   } catch (error) {
-    console.error('Failed to read notifications cache', error);
+    console.error("Failed to read notifications cache", error);
     return [];
   }
 };
@@ -212,14 +239,14 @@ const readNotificationsCache = async (): Promise<Notification[]> => {
 const writeNotificationsCache = async (notifications: Notification[]) => {
   try {
     const now = Date.now();
-    const cached: CachedNotification[] = notifications.map(notification => ({
+    const cached: CachedNotification[] = notifications.map((notification) => ({
       ...notification,
       cachedAt: now,
     }));
     const serialized = JSON.stringify(cached);
     await AsyncStorage.setItem(NOTIFICATIONS_CACHE_KEY, serialized);
   } catch (error) {
-    console.error('Failed to write notifications cache', error);
+    console.error("Failed to write notifications cache", error);
   }
 };
 
@@ -229,22 +256,34 @@ const isNetworkError = (error: unknown): boolean => {
   if (error instanceof BackendError) {
     return error.status === 0;
   }
-  
-  if (error && typeof error === 'object' && 'name' in error && error.name === 'BackendError' && 'status' in error) {
+
+  if (
+    error &&
+    typeof error === "object" &&
+    "name" in error &&
+    error.name === "BackendError" &&
+    "status" in error
+  ) {
     return (error as { status: number }).status === 0;
   }
-  
+
   if (isAxiosError(error)) {
     if (!error.response) {
       return true;
     }
 
     const code = error.code;
-    if (code === 'ECONNREFUSED' || code === 'ETIMEDOUT' || code === 'ENOTFOUND' || code === 'ERR_NETWORK' || code === 'ERR_NAME_NOT_RESOLVED') {
+    if (
+      code === "ECONNREFUSED" ||
+      code === "ETIMEDOUT" ||
+      code === "ENOTFOUND" ||
+      code === "ERR_NETWORK" ||
+      code === "ERR_NAME_NOT_RESOLVED"
+    ) {
       return true;
     }
   }
-  
+
   return false;
 };
 
@@ -256,7 +295,7 @@ const getTodayStart = () => {
 
 const filterFutureScheduleDays = (days: ScheduleDay[]) => {
   const todayStart = getTodayStart();
-  return days.filter(day => {
+  return days.filter((day) => {
     const dayTime = getDateValue(day.date);
     return dayTime === 0 ? true : dayTime >= todayStart;
   });
@@ -269,12 +308,12 @@ const readScheduleCache = async (): Promise<ScheduleCacheStore> => {
       return {};
     }
     const parsed = JSON.parse(rawValue);
-    if (parsed && typeof parsed === 'object') {
+    if (parsed && typeof parsed === "object") {
       return parsed as ScheduleCacheStore;
     }
     return {};
   } catch (error) {
-    console.error('Failed to read schedule cache', error);
+    console.error("Failed to read schedule cache", error);
     return {};
   }
 };
@@ -284,11 +323,13 @@ const writeScheduleCache = async (cache: ScheduleCacheStore) => {
     const serialized = JSON.stringify(cache);
     await AsyncStorage.setItem(SCHEDULE_CACHE_KEY, serialized);
   } catch (error) {
-    console.error('Failed to write schedule cache', error);
+    console.error("Failed to write schedule cache", error);
   }
 };
 
-const getCachedScheduleForTarget = async (targetKey: string): Promise<ScheduleDay[]> => {
+const getCachedScheduleForTarget = async (
+  targetKey: string,
+): Promise<ScheduleDay[]> => {
   const cache = await readScheduleCache();
   const storedDays = cache[targetKey];
   if (!storedDays) {
@@ -306,7 +347,10 @@ const getCachedScheduleForTarget = async (targetKey: string): Promise<ScheduleDa
   return filtered;
 };
 
-const persistScheduleForTarget = async (targetKey: string, days: ScheduleDay[]): Promise<void> => {
+const persistScheduleForTarget = async (
+  targetKey: string,
+  days: ScheduleDay[],
+): Promise<void> => {
   const cache = await readScheduleCache();
   const filteredDays = filterFutureScheduleDays(days);
   if (filteredDays.length > 0) {
@@ -317,14 +361,16 @@ const persistScheduleForTarget = async (targetKey: string, days: ScheduleDay[]):
   await writeScheduleCache(cache);
 };
 
-const mapSearchTabToSubscriptionType = (type: SearchTab): 'cab' | 'group' | 'prepod' => {
-  if (type === 'cabinet') {
-    return 'cab';
+const mapSearchTabToSubscriptionType = (
+  type: SearchTab,
+): "cab" | "group" | "prepod" => {
+  if (type === "cabinet") {
+    return "cab";
   }
-  if (type === 'teacher') {
-    return 'prepod';
+  if (type === "teacher") {
+    return "prepod";
   }
-  return 'group';
+  return "group";
 };
 type SubscriptionItem = { id: string; title: string; type?: SearchTab };
 
@@ -332,102 +378,117 @@ type Notification = NotificationResponse;
 
 export default function HomeScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'calendar' | 'bell'>('calendar');
-  const [currentPage, setCurrentPage] = useState<'home' | 'subscriptions' | 'bells' | 'themes'>('home');
+  const [activeTab, setActiveTab] = useState<"calendar" | "bell">("calendar");
+  const [currentPage, setCurrentPage] = useState<
+    "home" | "subscriptions" | "bells" | "themes"
+  >("home");
   const [subscriptions, setSubscriptions] = useState<SubscriptionItem[]>([]);
   const [bellsListReady, setBellsListReady] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [searchTab, setSearchTab] = useState<SearchTab>('group');
-  const [searchText, setSearchText] = useState('');
+  const [searchTab, setSearchTab] = useState<SearchTab>("group");
+  const [searchText, setSearchText] = useState("");
   const [subscriptionPickerOpen, setSubscriptionPickerOpen] = useState(false);
-  const [subscriptionPickerTab, setSubscriptionPickerTab] = useState<SearchTab>('group');
-  const [subscriptionPickerSearch, setSubscriptionPickerSearch] = useState('');
+  const [subscriptionPickerTab, setSubscriptionPickerTab] =
+    useState<SearchTab>("group");
+  const [subscriptionPickerSearch, setSubscriptionPickerSearch] = useState("");
   const [subscriptionCooldown, setSubscriptionCooldown] = useState(0);
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [groups, setGroups] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [cabinets, setCabinets] = useState<string[]>([]);
   const [teachers, setTeachers] = useState<string[]>([]);
-  const [currentScheduleTarget, setCurrentScheduleTarget] = useState<ScheduleTarget | null>(null);
+  const [currentScheduleTarget, setCurrentScheduleTarget] =
+    useState<ScheduleTarget | null>(null);
   const [scheduleDays, setScheduleDays] = useState<ScheduleDay[]>([]);
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [selectedScheduleIndex, setSelectedScheduleIndex] = useState(0);
-  
+
   // Ref для горизонтального списка пар
   const scheduleListRef = useRef<FlatList>(null);
-  const SCREEN_WIDTH = Dimensions.get('window').width;
+  const SCREEN_WIDTH = Dimensions.get("window").width;
 
   const currentSchedule = useMemo(
     () => scheduleDays[selectedScheduleIndex] ?? null,
-    [scheduleDays, selectedScheduleIndex]
+    [scheduleDays, selectedScheduleIndex],
   );
   const scheduleTargetLabel = getScheduleTargetLabel(currentScheduleTarget);
   const canGoPrevDay = selectedScheduleIndex > 0;
   const canGoNextDay = selectedScheduleIndex < scheduleDays.length - 1;
 
   // Изменено: теперь это функция, которая принимает день и возвращает сгруппированные пары
-  const getLessonsForDay = useCallback((day: ScheduleDay | null): LessonCard[] => {
-    if (!day) return [];
+  const getLessonsForDay = useCallback(
+    (day: ScheduleDay | null): LessonCard[] => {
+      if (!day) return [];
 
-    const groups: LessonCard[] = [];
-    const map = new Map<string, LessonCard>();
+      const groups: LessonCard[] = [];
+      const map = new Map<string, LessonCard>();
 
-    day.couples.forEach(lesson => {
-      const numberKey = `${lesson.number}`.trim();
-      const titleKey = (lesson.title ?? '').trim().toLowerCase();
-      const groupKey = `${numberKey}__${titleKey}`;
+      day.couples.forEach((lesson) => {
+        const numberKey = `${lesson.number}`.trim();
+        const titleKey = (lesson.title ?? "").trim().toLowerCase();
+        const groupKey = `${numberKey}__${titleKey}`;
 
-      const existing = map.get(groupKey);
-      if (existing) {
-        existing.groupedLessons.push(lesson);
-        if (!existing.combined && lesson.combined) {
-          existing.combined = lesson.combined;
+        const existing = map.get(groupKey);
+        if (existing) {
+          existing.groupedLessons.push(lesson);
+          if (!existing.combined && lesson.combined) {
+            existing.combined = lesson.combined;
+          }
+          return;
         }
-        return;
-      }
 
-      const groupLesson: LessonCard = {
-        ...lesson,
-        groupedLessons: [lesson],
+        const groupLesson: LessonCard = {
+          ...lesson,
+          groupedLessons: [lesson],
+        };
+
+        map.set(groupKey, groupLesson);
+        groups.push(groupLesson);
+      });
+
+      const getSortOrder = (lesson: LessonCard): number => {
+        const isClassHour =
+          lesson.number === "К" ||
+          lesson.room === "К" ||
+          lesson.title === "Классный час";
+        if (isClassHour) {
+          return 3.5;
+        }
+        const num =
+          typeof lesson.number === "number"
+            ? lesson.number
+            : typeof lesson.number === "string" && /^\d+$/.test(lesson.number)
+              ? parseInt(lesson.number, 10)
+              : 999;
+        return num;
       };
 
-      map.set(groupKey, groupLesson);
-      groups.push(groupLesson);
-    });
+      groups.sort((a, b) => {
+        const orderA = getSortOrder(a);
+        const orderB = getSortOrder(b);
+        return orderA - orderB;
+      });
 
-    const getSortOrder = (lesson: LessonCard): number => {
-      const isClassHour = lesson.number === 'К' || lesson.room === 'К' || lesson.title === 'Классный час';
-      if (isClassHour) {
-        return 3.5;
-      }
-      const num = typeof lesson.number === 'number' 
-        ? lesson.number 
-        : (typeof lesson.number === 'string' && /^\d+$/.test(lesson.number) 
-          ? parseInt(lesson.number, 10) 
-          : 999);
-      return num;
-    };
-    
-    groups.sort((a, b) => {
-      const orderA = getSortOrder(a);
-      const orderB = getSortOrder(b);
-      return orderA - orderB;
-    });
-
-    return groups;
-  }, []);
+      return groups;
+    },
+    [],
+  );
 
   const currentDateLabel = currentSchedule
     ? `${formatDateLabel(currentSchedule.date)}${
-        currentSchedule.corpus ? ` | ${currentSchedule.corpus} корпус` : ''
+        currentSchedule.corpus ? ` | ${currentSchedule.corpus} корпус` : ""
       }`
-    : 'Расписание не выбрано';
-    
+    : "Расписание не выбрано";
+
   const slideAnim = useRef(new Animated.Value(-MENU_HIDDEN_OFFSET)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
-  const searchSlideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
-  const subscriptionPickerAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
+  const searchSlideAnim = useRef(
+    new Animated.Value(Dimensions.get("window").height),
+  ).current;
+  const subscriptionPickerAnim = useRef(
+    new Animated.Value(Dimensions.get("window").height),
+  ).current;
   const bellsFlatListRef = useRef<FlatList>(null);
   const hasScrolledToInitial = useRef(false);
   const togglePosition = useRef(new Animated.Value(0)).current;
@@ -441,7 +502,10 @@ export default function HomeScreen() {
   useEffect(() => {
     if (scheduleListRef.current && scheduleDays.length > 0) {
       // Проверка на валидность индекса перед скроллом
-      if (selectedScheduleIndex >= 0 && selectedScheduleIndex < scheduleDays.length) {
+      if (
+        selectedScheduleIndex >= 0 &&
+        selectedScheduleIndex < scheduleDays.length
+      ) {
         scheduleListRef.current.scrollToIndex({
           index: selectedScheduleIndex,
           animated: true,
@@ -461,53 +525,74 @@ export default function HomeScreen() {
 
   const allNotifications = notifications;
 
-  const NotificationCard = ({ notification }: { notification: Notification }) => {
+  const NotificationCard = ({
+    notification,
+  }: {
+    notification: Notification;
+  }) => {
     const createdAtLabel = formatNotificationTimestamp(notification.created_at);
     const groupLabel = notification.group?.trim();
     const teacherLabel = notification.teacher?.trim();
     const cabinetLabel = notification.cabinet?.trim();
     const combinedLabel = notification.combined?.trim();
-  
+
     return (
-      <View style={[styles.notificationCard, { paddingBottom: 12 }]}> 
+      <View style={[styles.notificationCard, { paddingBottom: 12 }]}>
         {groupLabel && (
-          <View style={[styles.notificationGroupBadge, { position: 'absolute', top: 12, right: 12, zIndex: 1 }]}>
+          <View
+            style={[
+              styles.notificationGroupBadge,
+              { position: "absolute", top: 12, right: 12, zIndex: 1 },
+            ]}
+          >
             <BellIcon width={12} height={12} />
-            <Text style={styles.notificationGroupBadgeText} numberOfLines={1}>{groupLabel}</Text>
+            <Text style={styles.notificationGroupBadgeText} numberOfLines={1}>
+              {groupLabel}
+            </Text>
           </View>
         )}
-  
+
         {createdAtLabel && (
-          <View style={{ position: 'absolute', bottom: 12, right: 12 }}>
+          <View style={{ position: "absolute", bottom: 12, right: 12 }}>
             <Text style={styles.notificationDateText}>{createdAtLabel}</Text>
           </View>
         )}
-  
+
         <View style={styles.notificationCardRow}>
           <View style={styles.notificationTimeCol}>
-            <Text style={styles.notificationStartTime}>{notification.time_start}</Text>
-            <Text style={styles.notificationEndTime}>{notification.time_end}</Text>
+            <Text style={styles.notificationStartTime}>
+              {notification.time_start}
+            </Text>
+            <Text style={styles.notificationEndTime}>
+              {notification.time_end}
+            </Text>
             <View style={styles.notificationLessonNumberWrap}>
-              <Text style={styles.notificationLessonNumber}>{notification.couple}</Text>
+              <Text style={styles.notificationLessonNumber}>
+                {notification.couple}
+              </Text>
             </View>
           </View>
-  
+
           <View style={styles.notificationCardContent}>
             <View style={styles.notificationInfoContainer}>
               {!!teacherLabel && (
                 <View style={styles.notificationInfoLine}>
                   <UserIcon width={14} height={14} style={styles.icon} />
-                  <Text style={styles.notificationMetaText} numberOfLines={1}>{teacherLabel}</Text>
+                  <Text style={styles.notificationMetaText} numberOfLines={1}>
+                    {teacherLabel}
+                  </Text>
                 </View>
               )}
-  
+
               {!!cabinetLabel && (
                 <View style={styles.notificationInfoLine}>
                   <CabinetIcon width={14} height={14} style={styles.icon} />
-                  <Text style={styles.notificationMetaText} numberOfLines={1}>{cabinetLabel}</Text>
+                  <Text style={styles.notificationMetaText} numberOfLines={1}>
+                    {cabinetLabel}
+                  </Text>
                 </View>
               )}
-  
+
               {!!combinedLabel && (
                 <View style={styles.notificationInfoLine}>
                   <CombinedIcon width={14} height={14} style={styles.icon} />
@@ -538,7 +623,7 @@ export default function HomeScreen() {
           setGroups(fresh);
         }
       } catch (error) {
-        console.error('Failed to load groups list:', error);
+        console.error("Failed to load groups list:", error);
       }
     };
 
@@ -554,7 +639,9 @@ export default function HomeScreen() {
 
     const hydrateScheduleTarget = async () => {
       try {
-        const cachedTargetRaw = await AsyncStorage.getItem(SCHEDULE_TARGET_CACHE_KEY);
+        const cachedTargetRaw = await AsyncStorage.getItem(
+          SCHEDULE_TARGET_CACHE_KEY,
+        );
         if (!isMounted) {
           return;
         }
@@ -568,7 +655,7 @@ export default function HomeScreen() {
         }
         setShowScheduleTargetHint(true);
       } catch (error) {
-        console.error('Failed to load cached schedule target', error);
+        console.error("Failed to load cached schedule target", error);
         if (isMounted) {
           setShowScheduleTargetHint(true);
         }
@@ -592,104 +679,117 @@ export default function HomeScreen() {
       await AsyncStorage.setItem(WEB_DEVICE_TOKEN_KEY, fresh);
       return fresh;
     } catch (error) {
-      console.error('Failed to cache web device token', error);
+      console.error("Failed to cache web device token", error);
       return `web-${Date.now()}`;
     }
   }, []);
 
-  const loadSchedule = useCallback(
-    async (target: ScheduleTarget) => {
-      const targetKey = `${target.type}:${target.name}`;
-      scheduleRequestKeyRef.current = targetKey;
-      setScheduleLoading(true);
-      setScheduleError(null);
+  const loadSchedule = useCallback(async (target: ScheduleTarget) => {
+    const targetKey = `${target.type}:${target.name}`;
+    scheduleRequestKeyRef.current = targetKey;
+    setScheduleLoading(true);
+    setScheduleError(null);
 
-      let cacheApplied = false;
+    let cacheApplied = false;
 
-      try {
-        const cachedDays = await getCachedScheduleForTarget(targetKey);
-        if (cachedDays.length > 0 && scheduleRequestKeyRef.current === targetKey) {
-          cacheApplied = true;
-          setScheduleDays(cachedDays);
-          setSelectedScheduleIndex(0);
-        }
-      } catch (error) {
-        console.error('Failed to hydrate schedule from cache', error);
+    try {
+      const cachedDays = await getCachedScheduleForTarget(targetKey);
+      if (
+        cachedDays.length > 0 &&
+        scheduleRequestKeyRef.current === targetKey
+      ) {
+        cacheApplied = true;
+        setScheduleDays(cachedDays);
+        setSelectedScheduleIndex(0);
       }
+    } catch (error) {
+      console.error("Failed to hydrate schedule from cache", error);
+    }
 
-      try {
-        const response = await getCouples(target.name);
-        const normalized: ScheduleDay[] = Object.entries(response ?? {}).map(([dateKey, payload]) => ({
+    try {
+      const response = await getCouples(target.name);
+      const normalized: ScheduleDay[] = Object.entries(response ?? {}).map(
+        ([dateKey, payload]) => ({
           date: dateKey,
           fromType: payload.from_type,
           corpus: payload.corpus,
           couples: (payload.couples ?? []).map((couple, index) => {
-            const coupleRaw = `${couple.couple ?? ''}`.trim();
+            const coupleRaw = `${couple.couple ?? ""}`.trim();
             const coupleMatch = coupleRaw.match(/\d+/);
-            const pairNumber = coupleMatch ? Number(coupleMatch[0]) : coupleRaw || index + 1;
-            const cabinetRaw = couple.cabinet?.trim() ?? '';
-            const normalizedCabinet = cabinetRaw === 'К' ? 'К' : cabinetRaw;
-            const normalizedTitle = normalizedCabinet === 'К' ? 'Классный час' : couple.lesson?.trim() || '—';
+            const pairNumber = coupleMatch
+              ? Number(coupleMatch[0])
+              : coupleRaw || index + 1;
+            const cabinetRaw = couple.cabinet?.trim() ?? "";
+            const normalizedCabinet = cabinetRaw === "К" ? "К" : cabinetRaw;
+            const normalizedTitle =
+              normalizedCabinet === "К"
+                ? "Классный час"
+                : couple.lesson?.trim() || "—";
             const coupleIdSuffix = coupleRaw || `slot-${index}`;
 
             return {
               id: `${dateKey}-${coupleIdSuffix}-${index}`,
               number: pairNumber,
-              startTime: couple.time?.start ?? '',
-              endTime: couple.time?.end ?? '',
+              startTime: couple.time?.start ?? "",
+              endTime: couple.time?.end ?? "",
               title: normalizedTitle,
-              teacher: couple.teacher ?? '',
+              teacher: couple.teacher ?? "",
               room: normalizedCabinet,
-              group: couple.group ?? '',
+              group: couple.group ?? "",
               combined: couple.combined ?? null,
             };
           }),
-        }));
+        }),
+      );
 
-        normalized.sort((a, b) => getDateValue(a.date) - getDateValue(b.date));
+      normalized.sort((a, b) => getDateValue(a.date) - getDateValue(b.date));
 
-        if (scheduleRequestKeyRef.current === targetKey) {
-          setScheduleDays(normalized);
-          setSelectedScheduleIndex(0);
-          setScheduleError(normalized.length === 0 ? 'Расписание отсутствует' : null);
-        }
+      if (scheduleRequestKeyRef.current === targetKey) {
+        setScheduleDays(normalized);
+        setSelectedScheduleIndex(0);
+        setScheduleError(
+          normalized.length === 0 ? "Расписание отсутствует" : null,
+        );
+      }
 
-        await persistScheduleForTarget(targetKey, normalized);
-      } catch (error) {
-        console.error('Failed to load couples schedule', error);
-        if (scheduleRequestKeyRef.current === targetKey) {
-          if (cacheApplied) {
-            setScheduleError('Не удалось обновить расписание. Показаны данные из кэша.');
-          } else {
-            setScheduleDays([]);
-            setScheduleError('Не удалось загрузить расписание. Попробуйте позже.');
-          }
-        }
-      } finally {
-        if (scheduleRequestKeyRef.current === targetKey) {
-          setScheduleLoading(false);
+      await persistScheduleForTarget(targetKey, normalized);
+    } catch (error) {
+      console.error("Failed to load couples schedule", error);
+      if (scheduleRequestKeyRef.current === targetKey) {
+        if (cacheApplied) {
+          setScheduleError(
+            "Не удалось обновить расписание. Показаны данные из кэша.",
+          );
+        } else {
+          setScheduleDays([]);
+          setScheduleError(
+            "Не удалось загрузить расписание. Попробуйте позже.",
+          );
         }
       }
-    },
-    []
-  );
+    } finally {
+      if (scheduleRequestKeyRef.current === targetKey) {
+        setScheduleLoading(false);
+      }
+    }
+  }, []);
 
   const handleChangeScheduleDay = useCallback(
-    (direction: 'prev' | 'next') => {
-      setSelectedScheduleIndex(prev => {
-        if (direction === 'prev') {
+    (direction: "prev" | "next") => {
+      setSelectedScheduleIndex((prev) => {
+        if (direction === "prev") {
           return Math.max(prev - 1, 0);
         }
         return Math.min(prev + 1, Math.max(scheduleDays.length - 1, 0));
       });
     },
-    [scheduleDays.length]
+    [scheduleDays.length],
   );
 
   const loadActiveSubscriptions = useCallback(async () => {
     try {
       let token = await getCachedDeviceToken();
-      if (!token && Platform.OS === 'web') {
+      if (!token && Platform.OS === "web") {
         token = await getWebDeviceToken();
       }
       if (!token) {
@@ -699,17 +799,23 @@ export default function HomeScreen() {
       if (!activeSubscriptions) {
         return;
       }
-      const newSubscriptions = activeSubscriptions.map(title => ({
+      const newSubscriptions = activeSubscriptions.map((title) => ({
         id: `remote-${title}`,
         title,
       }));
       setSubscriptions(newSubscriptions);
     } catch (error) {
-      console.error('Failed to load active subscriptions from backend', error);
+      console.error("Failed to load active subscriptions from backend", error);
       if (isNetworkError(error)) {
-        Alert.alert('Ошибка подключения к интернету', 'Не удалось загрузить подписки. Проверьте подключение к интернету.');
+        Alert.alert(
+          "Ошибка подключения к интернету",
+          "Не удалось загрузить подписки. Проверьте подключение к интернету.",
+        );
       } else {
-        Alert.alert('Ошибка', 'Не удалось загрузить подписки. Попробуйте позже.');
+        Alert.alert(
+          "Ошибка",
+          "Не удалось загрузить подписки. Попробуйте позже.",
+        );
       }
     }
   }, [getWebDeviceToken]);
@@ -721,12 +827,12 @@ export default function HomeScreen() {
         setNotifications(cachedNotifications);
       }
     } catch (error) {
-      console.error('Failed to load notifications from cache', error);
+      console.error("Failed to load notifications from cache", error);
     }
 
     try {
       let token = await getCachedDeviceToken();
-      if (!token && Platform.OS === 'web') {
+      if (!token && Platform.OS === "web") {
         token = await getWebDeviceToken();
       }
       if (!token) {
@@ -738,7 +844,7 @@ export default function HomeScreen() {
         await writeNotificationsCache(freshNotifications);
       }
     } catch (error) {
-      console.error('Failed to load notifications from backend', error);
+      console.error("Failed to load notifications from backend", error);
     }
   }, [getWebDeviceToken]);
 
@@ -820,7 +926,7 @@ export default function HomeScreen() {
           setCabinets(fresh);
         }
       } catch (error) {
-        console.error('Failed to load cabinets list:', error);
+        console.error("Failed to load cabinets list:", error);
       }
     };
 
@@ -845,7 +951,7 @@ export default function HomeScreen() {
           setTeachers(fresh);
         }
       } catch (error) {
-        console.error('Failed to load teachers list:', error);
+        console.error("Failed to load teachers list:", error);
       }
     };
 
@@ -857,33 +963,49 @@ export default function HomeScreen() {
   }, []);
 
   const filteredData = useMemo(() => {
-    const data = searchTab === 'group' ? groups : searchTab === 'cabinet' ? cabinets : teachers;
+    const data =
+      searchTab === "group"
+        ? groups
+        : searchTab === "cabinet"
+          ? cabinets
+          : teachers;
     if (!searchText.trim()) {
       return data;
     }
     const lowerSearch = searchText.toLowerCase();
-    return data.filter(item => item.toLowerCase().includes(lowerSearch));
+    return data.filter((item) => item.toLowerCase().includes(lowerSearch));
   }, [searchTab, searchText, groups, cabinets, teachers]);
 
   const subscriptionPickerFilteredData = useMemo(() => {
-    const data = subscriptionPickerTab === 'group' ? groups : subscriptionPickerTab === 'cabinet' ? cabinets : teachers;
+    const data =
+      subscriptionPickerTab === "group"
+        ? groups
+        : subscriptionPickerTab === "cabinet"
+          ? cabinets
+          : teachers;
     if (!subscriptionPickerSearch.trim()) {
       return data;
     }
     const lowerSearch = subscriptionPickerSearch.toLowerCase();
-    return data.filter(item => item.toLowerCase().includes(lowerSearch));
-  }, [subscriptionPickerTab, subscriptionPickerSearch, groups, cabinets, teachers]);
+    return data.filter((item) => item.toLowerCase().includes(lowerSearch));
+  }, [
+    subscriptionPickerTab,
+    subscriptionPickerSearch,
+    groups,
+    cabinets,
+    teachers,
+  ]);
   const subscriptionLimitReached = subscriptions.length >= 10;
 
   useEffect(() => {
     const loadFavorites = async () => {
       try {
-        const stored = await AsyncStorage.getItem('favorites');
+        const stored = await AsyncStorage.getItem("favorites");
         if (stored) {
           setFavorites(JSON.parse(stored));
         }
       } catch (error) {
-        console.error('Error loading favorites:', error);
+        console.error("Error loading favorites:", error);
       }
     };
     loadFavorites();
@@ -891,16 +1013,16 @@ export default function HomeScreen() {
 
   const saveFavorites = async (newFavorites: FavoriteItem[]) => {
     try {
-      await AsyncStorage.setItem('favorites', JSON.stringify(newFavorites));
+      await AsyncStorage.setItem("favorites", JSON.stringify(newFavorites));
       setFavorites(newFavorites);
     } catch (error) {
-      console.error('Error saving favorites:', error);
+      console.error("Error saving favorites:", error);
     }
   };
 
   const addToFavorites = (type: SearchTab, name: string) => {
     const id = `${type}-${name}`;
-    const exists = favorites.find(f => f.id === id);
+    const exists = favorites.find((f) => f.id === id);
     if (!exists) {
       const newFavorites = [...favorites, { id, type, name }];
       saveFavorites(newFavorites);
@@ -908,23 +1030,23 @@ export default function HomeScreen() {
   };
 
   const removeFromFavorites = (id: string) => {
-    const newFavorites = favorites.filter(f => f.id !== id);
+    const newFavorites = favorites.filter((f) => f.id !== id);
     saveFavorites(newFavorites);
   };
 
   const isFavorite = (type: SearchTab, name: string) => {
     const id = `${type}-${name}`;
-    return favorites.some(f => f.id === id);
+    return favorites.some((f) => f.id === id);
   };
 
   const isSubscribed = useCallback(
     (type: SearchTab, title: string) =>
       subscriptions.some(
-        subscription =>
+        (subscription) =>
           subscription.title === title &&
-          (subscription.type ? subscription.type === type : true)
+          (subscription.type ? subscription.type === type : true),
       ),
-    [subscriptions]
+    [subscriptions],
   );
 
   const handleAddSubscription = useCallback(
@@ -934,14 +1056,14 @@ export default function HomeScreen() {
       }
 
       let added = false;
-      setSubscriptions(prev => {
+      setSubscriptions((prev) => {
         if (prev.length >= 10) {
           return prev;
         }
         const alreadyExists = prev.some(
-          subscription =>
+          (subscription) =>
             subscription.title === title &&
-            (subscription.type ? subscription.type === type : true)
+            (subscription.type ? subscription.type === type : true),
         );
         if (alreadyExists) {
           return prev;
@@ -961,20 +1083,26 @@ export default function HomeScreen() {
       try {
         let token = await getCachedDeviceToken();
         if (!token) {
-          if (Platform.OS === 'web') {
+          if (Platform.OS === "web") {
             token = await getWebDeviceToken();
           } else {
             try {
               token = await getDeviceToken();
             } catch (error) {
-              console.error('Failed to obtain device token', error);
-              Alert.alert('Ошибка', 'Не удалось получить токен устройства для подписки.');
+              console.error("Failed to obtain device token", error);
+              Alert.alert(
+                "Ошибка",
+                "Не удалось получить токен устройства для подписки.",
+              );
               return;
             }
           }
         }
         if (!token) {
-          Alert.alert('Ошибка', 'Токен устройства недоступен. Попробуйте позже.');
+          Alert.alert(
+            "Ошибка",
+            "Токен устройства недоступен. Попробуйте позже.",
+          );
           return;
         }
         const response = await subscribe({
@@ -983,60 +1111,74 @@ export default function HomeScreen() {
           tracked_type: mapSearchTabToSubscriptionType(type),
         });
         if (!response?.success) {
-          console.warn('Backend rejected subscription:', response?.message);
+          console.warn("Backend rejected subscription:", response?.message);
         }
       } catch (error) {
-        console.error('Failed to send subscription to backend', error);
+        console.error("Failed to send subscription to backend", error);
       }
     },
-    [subscriptionCooldown, getWebDeviceToken]
+    [subscriptionCooldown, getWebDeviceToken],
   );
 
   const handleRemoveSubscription = useCallback(
     async (subscription: SubscriptionItem) => {
-      setSubscriptions(prev => prev.filter(s => s.id !== subscription.id));
+      setSubscriptions((prev) => prev.filter((s) => s.id !== subscription.id));
 
       try {
         let token = await getCachedDeviceToken();
         if (!token) {
-          if (Platform.OS === 'web') {
+          if (Platform.OS === "web") {
             token = await getWebDeviceToken();
           } else {
             try {
               token = await getDeviceToken();
             } catch (error) {
-              console.error('Failed to obtain device token for unsubscribe', error);
-              Alert.alert('Ошибка', 'Не удалось получить токен устройства для удаления подписки.');
+              console.error(
+                "Failed to obtain device token for unsubscribe",
+                error,
+              );
+              Alert.alert(
+                "Ошибка",
+                "Не удалось получить токен устройства для удаления подписки.",
+              );
               return;
             }
           }
         }
         if (!token) {
-          console.warn('Device token is unavailable while removing subscription');
+          console.warn(
+            "Device token is unavailable while removing subscription",
+          );
           return;
         }
         const response = await deleteSubscription(token, subscription.title);
         if (!response?.success) {
-          console.warn('Backend rejected subscription removal:', response?.message);
+          console.warn(
+            "Backend rejected subscription removal:",
+            response?.message,
+          );
         }
       } catch (error) {
-        console.error('Failed to delete subscription on backend', error);
+        console.error("Failed to delete subscription on backend", error);
         if (isNetworkError(error)) {
-          Alert.alert('Нет интернета', 'Не удалось удалить подписку. Проверьте подключение к интернету.');
+          Alert.alert(
+            "Нет интернета",
+            "Не удалось удалить подписку. Проверьте подключение к интернету.",
+          );
         }
       }
     },
-    [getWebDeviceToken]
+    [getWebDeviceToken],
   );
 
   const closeSearch = useCallback(() => {
     Animated.timing(searchSlideAnim, {
-      toValue: Dimensions.get('window').height,
+      toValue: Dimensions.get("window").height,
       duration: 300,
       useNativeDriver: true,
     }).start(() => {
       setSearchOpen(false);
-      setSearchText('');
+      setSearchText("");
     });
   }, [searchSlideAnim]);
 
@@ -1049,16 +1191,19 @@ export default function HomeScreen() {
       setSelectedScheduleIndex(0);
       setScheduleError(null);
       try {
-        await AsyncStorage.setItem(SCHEDULE_TARGET_CACHE_KEY, JSON.stringify(nextTarget));
+        await AsyncStorage.setItem(
+          SCHEDULE_TARGET_CACHE_KEY,
+          JSON.stringify(nextTarget),
+        );
       } catch (error) {
-        console.error('Failed to cache selected schedule target', error);
+        console.error("Failed to cache selected schedule target", error);
       }
-      setSearchText('');
-      setCurrentPage('home');
-      setActiveTab('calendar');
+      setSearchText("");
+      setCurrentPage("home");
+      setActiveTab("calendar");
       closeSearch();
     },
-    [closeSearch]
+    [closeSearch],
   );
 
   const openSubscriptionPicker = useCallback(() => {
@@ -1072,12 +1217,12 @@ export default function HomeScreen() {
 
   const closeSubscriptionPicker = useCallback(() => {
     Animated.timing(subscriptionPickerAnim, {
-      toValue: Dimensions.get('window').height,
+      toValue: Dimensions.get("window").height,
       duration: 300,
       useNativeDriver: true,
     }).start(() => {
       setSubscriptionPickerOpen(false);
-      setSubscriptionPickerSearch('');
+      setSubscriptionPickerSearch("");
     });
   }, [subscriptionPickerAnim]);
 
@@ -1085,7 +1230,10 @@ export default function HomeScreen() {
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        return gestureState.dy > 10 && Math.abs(gestureState.dx) < Math.abs(gestureState.dy);
+        return (
+          gestureState.dy > 10 &&
+          Math.abs(gestureState.dx) < Math.abs(gestureState.dy)
+        );
       },
       onPanResponderMove: (_, gestureState) => {
         if (gestureState.dy > 0) {
@@ -1102,14 +1250,17 @@ export default function HomeScreen() {
           }).start();
         }
       },
-    })
+    }),
   ).current;
 
   const subscriptionPickerPanResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        return gestureState.dy > 10 && Math.abs(gestureState.dx) < Math.abs(gestureState.dy);
+        return (
+          gestureState.dy > 10 &&
+          Math.abs(gestureState.dx) < Math.abs(gestureState.dy)
+        );
       },
       onPanResponderMove: (_, gestureState) => {
         if (gestureState.dy > 0) {
@@ -1126,18 +1277,18 @@ export default function HomeScreen() {
           }).start();
         }
       },
-    })
+    }),
   ).current;
 
   useEffect(() => {
-    if (currentPage === 'bells') {
+    if (currentPage === "bells") {
       setBellsListReady(false);
       hasScrolledToInitial.current = false;
     }
   }, [currentPage]);
 
   useEffect(() => {
-    if (currentPage !== 'subscriptions' && subscriptionPickerOpen) {
+    if (currentPage !== "subscriptions" && subscriptionPickerOpen) {
       closeSubscriptionPicker();
     }
   }, [currentPage, subscriptionPickerOpen, closeSubscriptionPicker]);
@@ -1148,26 +1299,31 @@ export default function HomeScreen() {
     }
 
     const timeout = setTimeout(() => {
-      setSubscriptionCooldown(prev => Math.max(prev - 1, 0));
+      setSubscriptionCooldown((prev) => Math.max(prev - 1, 0));
     }, 1000);
 
     return () => clearTimeout(timeout);
   }, [subscriptionCooldown]);
 
   useEffect(() => {
-    if (currentPage === 'bells' && bellsListReady && !hasScrolledToInitial.current && bellsFlatListRef.current) {
+    if (
+      currentPage === "bells" &&
+      bellsListReady &&
+      !hasScrolledToInitial.current &&
+      bellsFlatListRef.current
+    ) {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           if (bellsFlatListRef.current) {
-            const screen = Dimensions.get('window').width;
+            const screen = Dimensions.get("window").width;
             const cardWidth = screen * 0.52;
             const itemSize = cardWidth + 12;
             const index = 1;
             const padding = 16;
-            
+
             const elementStart = padding + itemSize * index;
             const offset = elementStart - (screen - cardWidth) / 2;
-            
+
             bellsFlatListRef.current.scrollToOffset({
               offset: Math.max(0, offset),
               animated: false,
@@ -1181,7 +1337,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     Animated.timing(togglePosition, {
-      toValue: activeTab === 'calendar' ? 0 : 1,
+      toValue: activeTab === "calendar" ? 0 : 1,
       duration: 300,
       useNativeDriver: true,
     }).start();
@@ -1197,49 +1353,57 @@ export default function HomeScreen() {
         if (serverVersion && serverVersion !== CURRENT_APP_VERSION) {
           setNewVersion(serverVersion);
         }
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error(e);
+      }
     };
     checkVersion();
   }, []);
 
   useEffect(() => {
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (subscriptionPickerOpen) {
-        closeSubscriptionPicker();
-        return true;
-      }
-      if (searchOpen) {
-        closeSearch();
-        return true;
-      }
-      
-      if (menuOpen && !menuAnimating.current) {
-        toggleMenu();
-        return true;
-      }
-      
-      if (currentPage !== 'home') {
-        setCurrentPage('home');
-        setActiveTab('calendar');
-        return true;
-      }
-      
-      return false;
-    });
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        if (subscriptionPickerOpen) {
+          closeSubscriptionPicker();
+          return true;
+        }
+        if (searchOpen) {
+          closeSearch();
+          return true;
+        }
+
+        if (menuOpen && !menuAnimating.current) {
+          toggleMenu();
+          return true;
+        }
+
+        if (currentPage !== "home") {
+          setCurrentPage("home");
+          setActiveTab("calendar");
+          return true;
+        }
+
+        return false;
+      },
+    );
 
     return () => backHandler.remove();
-  }, [menuOpen, currentPage, searchOpen, toggleMenu, closeSearch, subscriptionPickerOpen, closeSubscriptionPicker]);
+  }, [
+    menuOpen,
+    currentPage,
+    searchOpen,
+    toggleMenu,
+    closeSearch,
+    subscriptionPickerOpen,
+    closeSubscriptionPicker,
+  ]);
 
   return (
     <View style={styles.container}>
       {menuOpen && (
-        <Animated.View 
-          style={[
-            styles.overlay,
-            { opacity: overlayOpacity }
-          ]}
-        >
-          <TouchableOpacity 
+        <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
+          <TouchableOpacity
             style={styles.overlayTouchable}
             activeOpacity={1}
             onPress={toggleMenu}
@@ -1248,26 +1412,23 @@ export default function HomeScreen() {
       )}
 
       {menuRendered && (
-        <Animated.View 
-          style={[
-            styles.sideMenu,
-            { transform: [{ translateX: slideAnim }] }
-          ]}
+        <Animated.View
+          style={[styles.sideMenu, { transform: [{ translateX: slideAnim }] }]}
         >
           <TouchableOpacity
             activeOpacity={0.7}
             style={styles.menuHeader}
             onPress={() => {
-            if (searchOpen) {
-              closeSearch();
-            }
-              setCurrentPage('home');
-              setActiveTab('calendar');
+              if (searchOpen) {
+                closeSearch();
+              }
+              setCurrentPage("home");
+              setActiveTab("calendar");
               toggleMenu();
             }}
           >
-            <Image 
-              source={require('../../assets/logoburger.png')} 
+            <Image
+              source={require("../../assets/logoburger.png")}
               style={styles.logoImage}
               resizeMode="contain"
             />
@@ -1282,11 +1443,14 @@ export default function HomeScreen() {
                 if (searchOpen) {
                   closeSearch();
                 }
-                setCurrentPage('subscriptions');
+                setCurrentPage("subscriptions");
                 toggleMenu();
               }}
             >
-              <Image source={require('../../assets/BellIcon.png')} style={styles.menuIcon} />
+              <Image
+                source={require("../../assets/BellIcon.png")}
+                style={styles.menuIcon}
+              />
               <Text style={styles.menuItemText}>Подписки</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -1296,14 +1460,15 @@ export default function HomeScreen() {
                 if (searchOpen) {
                   closeSearch();
                 }
-                setCurrentPage('bells');
+                setCurrentPage("bells");
                 toggleMenu();
               }}
             >
-              <Image source={require('../../assets/TimeIcon.png')} style={styles.menuIcon} />
-              <Text style={styles.menuItemText}>
-                Расписание звонков
-              </Text>
+              <Image
+                source={require("../../assets/TimeIcon.png")}
+                style={styles.menuIcon}
+              />
+              <Text style={styles.menuItemText}>Расписание звонков</Text>
             </TouchableOpacity>
             <TouchableOpacity
               activeOpacity={0.7}
@@ -1312,18 +1477,22 @@ export default function HomeScreen() {
                 if (searchOpen) {
                   closeSearch();
                 }
-                setCurrentPage('themes');
+                setCurrentPage("themes");
                 toggleMenu();
               }}
             >
-              <Image source={require('../../assets/ThemeIcon.png')} style={styles.menuIcon} />
+              <Image
+                source={require("../../assets/ThemeIcon.png")}
+                style={styles.menuIcon}
+              />
               <Text style={styles.menuItemText}>Темы</Text>
             </TouchableOpacity>
             <TouchableOpacity
               activeOpacity={0.7}
               style={styles.menuItem}
               onPress={async () => {
-                const url = 'https://drive.google.com/drive/folders/1kUYiSAafghhYR0ARyXwPW1HZPpHcFIag?usp=sharing';
+                const url =
+                  "https://drive.google.com/drive/folders/1kUYiSAafghhYR0ARyXwPW1HZPpHcFIag?usp=sharing";
                 const supported = await Linking.canOpenURL(url);
                 if (supported) {
                   await Linking.openURL(url);
@@ -1331,7 +1500,10 @@ export default function HomeScreen() {
                 toggleMenu();
               }}
             >
-              <Image source={require('../../assets/URLIcon.png')} style={styles.menuIcon} />
+              <Image
+                source={require("../../assets/URLIcon.png")}
+                style={styles.menuIcon}
+              />
               <Text style={styles.menuItemText}>Файл планшетки</Text>
             </TouchableOpacity>
           </View>
@@ -1341,25 +1513,33 @@ export default function HomeScreen() {
             <TouchableOpacity
               activeOpacity={0.7}
               style={{
-                backgroundColor: '#0A84FF',
+                backgroundColor: "#191c21",
                 padding: 10,
                 marginHorizontal: 20,
                 borderRadius: 10,
-                alignItems: 'center',
-                marginBottom: 10
+                alignItems: "center",
+                marginBottom: 10,
               }}
-              onPress={() => Linking.openURL('https://github.com/RanVix/RKSIPlanshetkaMobile/releases')}
+              onPress={() =>
+                Linking.openURL(
+                  "https://github.com/RanVix/RKSIPlanshetkaMobile/releases",
+                )
+              }
             >
-              <Text style={{ color: '#fff', fontWeight: 'bold' }}>Новая версия: {newVersion}</Text>
+              <Text style={{ color: "#fff", fontWeight: "bold" }}>
+                Новая версия: {newVersion}
+              </Text>
             </TouchableOpacity>
           )}
 
-          <View style={[styles.menuFooter, { paddingBottom: 20 }]}> 
-            <Text style={styles.footerText}>{CURRENT_APP_VERSION} by Yarovich, RanVix</Text>
+          <View style={[styles.menuFooter, { paddingBottom: 20 }]}>
+            <Text style={styles.footerText}>
+              {CURRENT_APP_VERSION} by Yarovich, RanVix
+            </Text>
           </View>
         </Animated.View>
       )}
-      
+
       <View style={styles.topBar}>
         <View>
           <TouchableOpacity
@@ -1387,36 +1567,48 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {showScheduleTargetHint && !currentScheduleTarget && currentPage === 'home' && activeTab === 'calendar' && (
-        <TouchableOpacity
-          style={styles.targetHint}
-          activeOpacity={0.8}
-          onPress={openSearchModal}
-        >
-          <Text style={styles.targetHintTitle}>Начните с выбора группы</Text>
-          <Text style={styles.targetHintText}>
-            Можно нажать на строку выше или прямо на эту подсказку, выбрать группу и мы сохраним её, чтобы показывать пары даже без интернета.
-          </Text>
-        </TouchableOpacity>
-      )}
+      {showScheduleTargetHint &&
+        !currentScheduleTarget &&
+        currentPage === "home" &&
+        activeTab === "calendar" && (
+          <TouchableOpacity
+            style={styles.targetHint}
+            activeOpacity={0.8}
+            onPress={openSearchModal}
+          >
+            <Text style={styles.targetHintTitle}>Начните с выбора группы</Text>
+            <Text style={styles.targetHintText}>
+              Можно нажать на строку выше или прямо на эту подсказку, выбрать
+              группу и мы сохраним её, чтобы показывать пары даже без интернета.
+            </Text>
+          </TouchableOpacity>
+        )}
 
-      {currentPage === 'home' ? (
-        activeTab === 'calendar' ? (
+      {currentPage === "home" ? (
+        activeTab === "calendar" ? (
           <>
             <View style={styles.dateRow}>
               <TouchableOpacity
-                style={[styles.dateArrowButton, !canGoPrevDay && styles.dateArrowButtonDisabled]}
-                onPress={() => handleChangeScheduleDay('prev')}
+                style={[
+                  styles.dateArrowButton,
+                  !canGoPrevDay && styles.dateArrowButtonDisabled,
+                ]}
+                onPress={() => handleChangeScheduleDay("prev")}
                 disabled={!canGoPrevDay}
               >
                 <Text style={styles.dateArrowText}>‹</Text>
               </TouchableOpacity>
               <View style={styles.datePill}>
-                <Text style={styles.dateText} numberOfLines={1}>{currentDateLabel}</Text>
+                <Text style={styles.dateText} numberOfLines={1}>
+                  {currentDateLabel}
+                </Text>
               </View>
               <TouchableOpacity
-                style={[styles.dateArrowButton, !canGoNextDay && styles.dateArrowButtonDisabled]}
-                onPress={() => handleChangeScheduleDay('next')}
+                style={[
+                  styles.dateArrowButton,
+                  !canGoNextDay && styles.dateArrowButtonDisabled,
+                ]}
+                onPress={() => handleChangeScheduleDay("next")}
                 disabled={!canGoNextDay}
               >
                 <Text style={styles.dateArrowText}>›</Text>
@@ -1432,8 +1624,14 @@ export default function HomeScreen() {
               pagingEnabled
               showsHorizontalScrollIndicator={false}
               onMomentumScrollEnd={(ev) => {
-                const newIndex = Math.round(ev.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-                if (newIndex !== selectedScheduleIndex && newIndex >= 0 && newIndex < scheduleDays.length) {
+                const newIndex = Math.round(
+                  ev.nativeEvent.contentOffset.x / SCREEN_WIDTH,
+                );
+                if (
+                  newIndex !== selectedScheduleIndex &&
+                  newIndex >= 0 &&
+                  newIndex < scheduleDays.length
+                ) {
                   setSelectedScheduleIndex(newIndex);
                 }
               }}
@@ -1443,28 +1641,33 @@ export default function HomeScreen() {
                 index,
               })}
               initialScrollIndex={selectedScheduleIndex}
-              onScrollToIndexFailed={info => {
-                const wait = new Promise(resolve => setTimeout(resolve, 500));
+              onScrollToIndexFailed={(info) => {
+                const wait = new Promise((resolve) => setTimeout(resolve, 500));
                 wait.then(() => {
-                  scheduleListRef.current?.scrollToIndex({ index: info.index, animated: true });
+                  scheduleListRef.current?.scrollToIndex({
+                    index: info.index,
+                    animated: true,
+                  });
                 });
               }}
-              ListEmptyComponent={(
+              ListEmptyComponent={
                 <View style={[styles.scheduleEmpty, { width: SCREEN_WIDTH }]}>
                   {scheduleLoading ? (
                     <ActivityIndicator color="#F3F4F6" />
                   ) : (
                     <Text style={styles.scheduleEmptyText}>
-                      {scheduleError ?? 'Выберите группу, кабинет или преподавателя, чтобы увидеть пары.'}
+                      {scheduleError ??
+                        "Выберите группу, кабинет или преподавателя, чтобы увидеть пары."}
                     </Text>
                   )}
                 </View>
-              )}
+              }
               renderItem={({ item: day }) => {
                 const dayLessons = getLessonsForDay(day);
-                
-                const showFooter = dayLessons.length > 0; 
-                const footerLabel = day.fromType === 0 ? 'расписание' : 'планшетка';
+
+                const showFooter = dayLessons.length > 0;
+                const footerLabel =
+                  day.fromType === 0 ? "расписание" : "планшетка";
 
                 return (
                   <View style={{ width: SCREEN_WIDTH }}>
@@ -1481,75 +1684,141 @@ export default function HomeScreen() {
                       ListFooterComponent={
                         showFooter ? (
                           <View style={styles.footerInline}>
-                            <Text style={styles.footerLinkText}>{footerLabel}</Text>
+                            <Text style={styles.footerLinkText}>
+                              {footerLabel}
+                            </Text>
                           </View>
                         ) : null
                       }
                       renderItem={({ item }) => {
                         const lessonVariants = item.groupedLessons;
                         const primaryLesson = lessonVariants[0];
-                        const hasCombinedBadge = lessonVariants.some(lesson => Boolean(lesson.combined));
+                        const hasCombinedBadge = lessonVariants.some((lesson) =>
+                          Boolean(lesson.combined),
+                        );
 
                         return (
                           <View style={styles.card}>
                             <View style={styles.cardRow}>
                               <View style={styles.timeCol}>
-                                <Text style={styles.startTime}>{primaryLesson.startTime}</Text>
+                                <Text style={styles.startTime}>
+                                  {primaryLesson.startTime}
+                                </Text>
                                 {primaryLesson.endTime ? (
-                                  <Text style={styles.endTime}>{primaryLesson.endTime}</Text>
+                                  <Text style={styles.endTime}>
+                                    {primaryLesson.endTime}
+                                  </Text>
                                 ) : null}
                                 <View style={styles.lessonNumberWrap}>
-                                  <Text style={styles.lessonNumber}>{primaryLesson.number}</Text>
+                                  <Text style={styles.lessonNumber}>
+                                    {primaryLesson.number}
+                                  </Text>
                                 </View>
                               </View>
 
                               <View style={styles.cardContent}>
                                 <View style={styles.titleBar}>
                                   <View style={styles.titleBarInner}>
-                                    <Text style={styles.titleText} numberOfLines={2}>{primaryLesson.title}</Text>
+                                    <Text
+                                      style={styles.titleText}
+                                      numberOfLines={2}
+                                    >
+                                      {primaryLesson.title}
+                                    </Text>
                                     {hasCombinedBadge && (
                                       <View style={styles.badge}>
-                                        <Text style={styles.badgeText}>Совмещёнка</Text>
+                                        <Text style={styles.badgeText}>
+                                          Совмещёнка
+                                        </Text>
                                       </View>
                                     )}
                                   </View>
                                 </View>
 
                                 {lessonVariants.map((lessonVariant, index) => {
-                                  const combinedGroupCabinet = lessonVariant.combined
-                                    ? lessonVariants.find(v => v.group === lessonVariant.combined)?.room || '—'
-                                    : null;
-                                  
-                                  const shouldShowGroup = currentScheduleTarget?.type !== 'group';
+                                  const combinedGroupCabinet =
+                                    lessonVariant.combined
+                                      ? lessonVariants.find(
+                                          (v) =>
+                                            v.group === lessonVariant.combined,
+                                        )?.room || "—"
+                                      : null;
+
+                                  const shouldShowGroup =
+                                    currentScheduleTarget?.type !== "group";
 
                                   return (
                                     <View
                                       key={lessonVariant.id}
-                                      style={index === 0 ? undefined : styles.lessonVariantDivider}
+                                      style={
+                                        index === 0
+                                          ? undefined
+                                          : styles.lessonVariantDivider
+                                      }
                                     >
                                       <View style={styles.infoLine}>
-                                        <UserIcon width={16} height={16} style={styles.icon} />
-                                        <Text style={styles.metaText} numberOfLines={1}>{lessonVariant.teacher || '—'}</Text>
+                                        <UserIcon
+                                          width={16}
+                                          height={16}
+                                          style={styles.icon}
+                                        />
+                                        <Text
+                                          style={styles.metaText}
+                                          numberOfLines={1}
+                                        >
+                                          {lessonVariant.teacher || "—"}
+                                        </Text>
                                       </View>
 
                                       <View style={styles.infoLine}>
-                                        <CabinetIcon width={16} height={16} style={styles.icon} />
-                                        <Text style={styles.metaText}>{lessonVariant.room || '—'}</Text>
+                                        <CabinetIcon
+                                          width={16}
+                                          height={16}
+                                          style={styles.icon}
+                                        />
+                                        <Text style={styles.metaText}>
+                                          {lessonVariant.room || "—"}
+                                        </Text>
                                       </View>
 
-                                      {shouldShowGroup && lessonVariant.group && (
-                                        <View style={styles.infoLine}>
-                                          <CombinedIcon width={16} height={16} style={styles.icon} />
-                                          <Text style={styles.metaText} numberOfLines={1}>{lessonVariant.group}</Text>
-                                        </View>
-                                      )}
+                                      {shouldShowGroup &&
+                                        lessonVariant.group && (
+                                          <View style={styles.infoLine}>
+                                            <CombinedIcon
+                                              width={16}
+                                              height={16}
+                                              style={styles.icon}
+                                            />
+                                            <Text
+                                              style={styles.metaText}
+                                              numberOfLines={1}
+                                            >
+                                              {lessonVariant.group}
+                                            </Text>
+                                          </View>
+                                        )}
 
                                       {lessonVariant.combined && (
-                                        <View style={[styles.infoLine, styles.groupInfoLine]}>
-                                          <CombinedIcon width={16} height={16} style={styles.icon} />
-                                          <Text style={styles.metaText} numberOfLines={1}>
+                                        <View
+                                          style={[
+                                            styles.infoLine,
+                                            styles.groupInfoLine,
+                                          ]}
+                                        >
+                                          <CombinedIcon
+                                            width={16}
+                                            height={16}
+                                            style={styles.icon}
+                                          />
+                                          <Text
+                                            style={styles.metaText}
+                                            numberOfLines={1}
+                                          >
                                             {lessonVariant.combined}
-                                            {combinedGroupCabinet && combinedGroupCabinet !== '—' ? ` · ${combinedGroupCabinet}` : ''}
+                                            {combinedGroupCabinet &&
+                                            combinedGroupCabinet !== "—"
+                                              ? ` · ${combinedGroupCabinet}`
+                                              : ""}
                                           </Text>
                                         </View>
                                       )}
@@ -1571,39 +1840,46 @@ export default function HomeScreen() {
           <View style={styles.notificationsContainer}>
             <Text style={styles.notificationsTitle}>Уведомления</Text>
             {allNotifications.length === 0 ? (
-          <View style={styles.notificationsEmpty}>
-            <BellIcon width={24} height={24} style={styles.icon} />
-            <Text style={styles.notificationsEmptyText}>Пока нет уведомлений</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={allNotifications}
-            keyExtractor={(item) => `notification-${item.id}`}
-            contentContainerStyle={styles.notificationsList}
-            renderItem={({ item }) => <NotificationCard notification={item} />}
-          />
-        )}
+              <View style={styles.notificationsEmpty}>
+                <BellIcon width={24} height={24} style={styles.icon} />
+                <Text style={styles.notificationsEmptyText}>
+                  Пока нет уведомлений
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={allNotifications}
+                keyExtractor={(item) => `notification-${item.id}`}
+                contentContainerStyle={styles.notificationsList}
+                renderItem={({ item }) => (
+                  <NotificationCard notification={item} />
+                )}
+              />
+            )}
           </View>
         )
-      ) : (
-        currentPage === 'subscriptions' ? (
+      ) : currentPage === "subscriptions" ? (
         <View style={styles.subscriptionsContainer}>
           <Text style={styles.subscriptionsTitle}>Подписки</Text>
           <FlatList
             data={subscriptions}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.subscriptionsList}
-            ListEmptyComponent={(
+            ListEmptyComponent={
               <View style={styles.notificationsEmpty}>
-                <Text style={styles.notificationsEmptyText}>Подписок пока нет</Text>
+                <Text style={styles.notificationsEmptyText}>
+                  Подписок пока нет
+                </Text>
               </View>
-            )}
+            }
             renderItem={({ item }) => (
               <View style={styles.subscriptionCard}>
-                <Text style={styles.subscriptionTitle} numberOfLines={1}>{item.title}</Text>
+                <Text style={styles.subscriptionTitle} numberOfLines={1}>
+                  {item.title}
+                </Text>
                 <TouchableOpacity
                   style={styles.subscriptionDelete}
-                onPress={() => handleRemoveSubscription(item)}
+                  onPress={() => handleRemoveSubscription(item)}
                 >
                   <TrashIcon width={18} height={18} />
                 </TouchableOpacity>
@@ -1615,7 +1891,9 @@ export default function HomeScreen() {
             activeOpacity={0.7}
             style={[
               styles.fabAdd,
-              subscriptionLimitReached && !subscriptionPickerOpen && styles.fabAddDisabled,
+              subscriptionLimitReached &&
+                !subscriptionPickerOpen &&
+                styles.fabAddDisabled,
             ]}
             onPress={() => {
               if (subscriptionPickerOpen) {
@@ -1629,95 +1907,126 @@ export default function HomeScreen() {
             }}
             disabled={subscriptionLimitReached && !subscriptionPickerOpen}
           >
-            <Text style={styles.fabAddText}>{subscriptionPickerOpen ? '−' : '+'}</Text>
+            <Text style={styles.fabAddText}>
+              {subscriptionPickerOpen ? "−" : "+"}
+            </Text>
           </TouchableOpacity>
 
           <View style={styles.subscriptionsFooter}>
-            <Text style={styles.subscriptionsCounter}>{subscriptions.length}/10</Text>
+            <Text style={styles.subscriptionsCounter}>
+              {subscriptions.length}/10
+            </Text>
           </View>
         </View>
-        ) : currentPage === 'bells' ? (
-          <View style={styles.bellsContainer}>
-            <Text style={styles.bellsTitle}>Расписание звонков</Text>
-            <FlatList
-              ref={bellsFlatListRef}
-              data={[
-                {
-                  id: 'short',
-                  title: 'Сокращённые пары',
-                  times: ['8:00 - 8:50','9:00 - 9:50','10:00 - 10:50','11:00 - 11:50','12:00 - 12:50','13:00 - 13:50','14:00 - 14:50'],
-                },
-                {
-                  id: 'usual',
-                  title: 'Обычное расписание',
-                  times: ['8:00 - 9:30','9:40 - 11:10','11:30 - 13:00','13:10 - 14:40','15:00 - 16:30','16:40 - 18:10','18:20 - 19:50'],
-                },
-                {
-                  id: 'withClass',
-                  title: 'С классным часом',
-                  times: ['8:00 - 9:30','9:40 - 11:10','11:30 - 13:00','13:05 - 14:05','14:10 - 15:40','16:00 - 17:30','17:40 - 19:10'],
-                },
-              ]}
-              keyExtractor={(i) => i.id}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              snapToAlignment="center"
-              decelerationRate="fast"
-              contentContainerStyle={styles.bellsList}
-              renderItem={({ item, index }) => {
-                const screen = Dimensions.get('window').width;
-                const cardWidth = screen * 0.52;
-                return (
-                  <View style={[styles.bellCard, { width: cardWidth }]}>
-                    <Text style={styles.bellCardTitle}>{item.title}</Text>
-                    {item.times.map((t, idx) => {
-
-                      let pairNumber: string;
-                      if (item.id === 'withClass' && idx === 3) {
-                        pairNumber = 'К';
-                      } else if (item.id === 'withClass' && idx > 3) {
-                        pairNumber = `${idx}`;
-                      } else {
-                        pairNumber = `${idx + 1}`;
-                      }
-                      return (
-                        <View key={idx} style={styles.bellRow}>
-                          <View style={styles.bellNum}><Text style={styles.bellNumText}>{pairNumber}</Text></View>
-                          <Text style={styles.bellTime}>{t}</Text>
+      ) : currentPage === "bells" ? (
+        <View style={styles.bellsContainer}>
+          <Text style={styles.bellsTitle}>Расписание звонков</Text>
+          <FlatList
+            ref={bellsFlatListRef}
+            data={[
+              {
+                id: "short",
+                title: "Сокращённые пары",
+                times: [
+                  "8:00 - 8:50",
+                  "9:00 - 9:50",
+                  "10:00 - 10:50",
+                  "11:00 - 11:50",
+                  "12:00 - 12:50",
+                  "13:00 - 13:50",
+                  "14:00 - 14:50",
+                ],
+              },
+              {
+                id: "usual",
+                title: "Обычное расписание",
+                times: [
+                  "8:00 - 9:30",
+                  "9:40 - 11:10",
+                  "11:30 - 13:00",
+                  "13:10 - 14:40",
+                  "15:00 - 16:30",
+                  "16:40 - 18:10",
+                  "18:20 - 19:50",
+                ],
+              },
+              {
+                id: "withClass",
+                title: "С классным часом",
+                times: [
+                  "8:00 - 9:30",
+                  "9:40 - 11:10",
+                  "11:30 - 13:00",
+                  "13:05 - 14:05",
+                  "14:10 - 15:40",
+                  "16:00 - 17:30",
+                  "17:40 - 19:10",
+                ],
+              },
+            ]}
+            keyExtractor={(i) => i.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            snapToAlignment="center"
+            decelerationRate="fast"
+            contentContainerStyle={styles.bellsList}
+            renderItem={({ item, index }) => {
+              const screen = Dimensions.get("window").width;
+              const cardWidth = screen * 0.52;
+              return (
+                <View style={[styles.bellCard, { width: cardWidth }]}>
+                  <Text style={styles.bellCardTitle}>{item.title}</Text>
+                  {item.times.map((t, idx) => {
+                    let pairNumber: string;
+                    if (item.id === "withClass" && idx === 3) {
+                      pairNumber = "К";
+                    } else if (item.id === "withClass" && idx > 3) {
+                      pairNumber = `${idx}`;
+                    } else {
+                      pairNumber = `${idx + 1}`;
+                    }
+                    return (
+                      <View key={idx} style={styles.bellRow}>
+                        <View style={styles.bellNum}>
+                          <Text style={styles.bellNumText}>{pairNumber}</Text>
                         </View>
-                      );
-                    })}
-                  </View>
-                );
-              }}
-              ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
-              snapToInterval={Dimensions.get('window').width * 0.52 + 12}
-              getItemLayout={(_, i) => {
-                const size = Dimensions.get('window').width * 0.52 + 12;
-                return { length: size, offset: size * i, index: i };
-              }}
-              onScrollToIndexFailed={(info) => {
-                const wait = new Promise(resolve => setTimeout(resolve, 500));
-                wait.then(() => {
-                  bellsFlatListRef.current?.scrollToIndex({ index: info.index, animated: true });
+                        <Text style={styles.bellTime}>{t}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              );
+            }}
+            ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
+            snapToInterval={Dimensions.get("window").width * 0.52 + 12}
+            getItemLayout={(_, i) => {
+              const size = Dimensions.get("window").width * 0.52 + 12;
+              return { length: size, offset: size * i, index: i };
+            }}
+            onScrollToIndexFailed={(info) => {
+              const wait = new Promise((resolve) => setTimeout(resolve, 500));
+              wait.then(() => {
+                bellsFlatListRef.current?.scrollToIndex({
+                  index: info.index,
+                  animated: true,
                 });
-              }}
-              onLayout={() => {
-                if (currentPage === 'bells' && !bellsListReady) {
-                  setBellsListReady(true);
-                }
-              }}
-            />
+              });
+            }}
+            onLayout={() => {
+              if (currentPage === "bells" && !bellsListReady) {
+                setBellsListReady(true);
+              }
+            }}
+          />
+        </View>
+      ) : (
+        <View style={styles.themesContainer}>
+          <Text style={styles.themesTitle}>Темы</Text>
+          <View style={styles.themesEmpty}>
+            <ThemeIcon width={48} height={48} style={styles.themesIcon} />
+            <Text style={styles.themesEmptyText}>Пока в разработке...</Text>
           </View>
-        ) : (
-          <View style={styles.themesContainer}>
-            <Text style={styles.themesTitle}>Темы</Text>
-            <View style={styles.themesEmpty}>
-              <ThemeIcon width={48} height={48} style={styles.themesIcon} />
-              <Text style={styles.themesEmptyText}>Пока в разработке...</Text>
-            </View>
-          </View>
-        )
+        </View>
       )}
 
       {searchOpen && (
@@ -1781,7 +2090,9 @@ export default function HomeScreen() {
                     <TouchableOpacity
                       key={item.id}
                       style={styles.favoriteItem}
-                  onPress={() => handleSelectScheduleTarget(item.type, item.name)}
+                      onPress={() =>
+                        handleSelectScheduleTarget(item.type, item.name)
+                      }
                       onLongPress={() => removeFromFavorites(item.id)}
                     >
                       <Text style={styles.favoriteItemText}>{item.name}</Text>
@@ -1794,17 +2105,36 @@ export default function HomeScreen() {
             <View style={styles.searchSection}>
               <View style={styles.searchSectionHeader}>
                 <View style={styles.searchSectionTitleRow}>
-                  {searchTab === 'group' && (
+                  {searchTab === "group" && (
                     <CombinedIcon
                       width={26}
                       height={26}
-                      style={[styles.searchSectionIcon, styles.searchSectionIconGroup]}
+                      style={[
+                        styles.searchSectionIcon,
+                        styles.searchSectionIconGroup,
+                      ]}
                     />
                   )}
-                  {searchTab === 'cabinet' && <CabinetIcon width={20} height={20} style={styles.searchSectionIcon} />}
-                  {searchTab === 'teacher' && <UserIcon width={20} height={20} style={styles.searchSectionIcon} />}
+                  {searchTab === "cabinet" && (
+                    <CabinetIcon
+                      width={20}
+                      height={20}
+                      style={styles.searchSectionIcon}
+                    />
+                  )}
+                  {searchTab === "teacher" && (
+                    <UserIcon
+                      width={20}
+                      height={20}
+                      style={styles.searchSectionIcon}
+                    />
+                  )}
                   <Text style={styles.searchSectionTitle}>
-                    {searchTab === 'group' ? 'Группы' : searchTab === 'cabinet' ? 'Кабинеты' : 'Преподаватели'}
+                    {searchTab === "group"
+                      ? "Группы"
+                      : searchTab === "cabinet"
+                        ? "Кабинеты"
+                        : "Преподаватели"}
                   </Text>
                 </View>
                 <View style={styles.searchTabSwitcher}>
@@ -1812,31 +2142,39 @@ export default function HomeScreen() {
                     style={[
                       styles.searchTabButton,
                       styles.searchTabButtonLeft,
-                      searchTab === 'group' && styles.searchTabButtonActive,
+                      searchTab === "group" && styles.searchTabButtonActive,
                     ]}
                     onPress={() => {
-                      setSearchTab('group');
-                      setSearchText('');
+                      setSearchTab("group");
+                      setSearchText("");
                     }}
                   >
-                    {searchTab === 'group' ? (
-                      <CombinedIcon width={24} height={24} style={{ marginTop: 6 }} />
+                    {searchTab === "group" ? (
+                      <CombinedIcon
+                        width={24}
+                        height={24}
+                        style={{ marginTop: 6 }}
+                      />
                     ) : (
-                      <CombinedIconBlackIcon width={24} height={24} style={{ marginTop: 6 }} />
+                      <CombinedIconBlackIcon
+                        width={24}
+                        height={24}
+                        style={{ marginTop: 6 }}
+                      />
                     )}
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[
                       styles.searchTabButton,
                       styles.searchTabButtonCenter,
-                      searchTab === 'cabinet' && styles.searchTabButtonActive,
+                      searchTab === "cabinet" && styles.searchTabButtonActive,
                     ]}
                     onPress={() => {
-                      setSearchTab('cabinet');
-                      setSearchText('');
+                      setSearchTab("cabinet");
+                      setSearchText("");
                     }}
                   >
-                    {searchTab === 'cabinet' ? (
+                    {searchTab === "cabinet" ? (
                       <CabinetIcon width={20} height={20} />
                     ) : (
                       <CabinetBlackIcon width={20} height={20} />
@@ -1846,14 +2184,14 @@ export default function HomeScreen() {
                     style={[
                       styles.searchTabButton,
                       styles.searchTabButtonRight,
-                      searchTab === 'teacher' && styles.searchTabButtonActive,
+                      searchTab === "teacher" && styles.searchTabButtonActive,
                     ]}
                     onPress={() => {
-                      setSearchTab('teacher');
-                      setSearchText('');
+                      setSearchTab("teacher");
+                      setSearchText("");
                     }}
                   >
-                    {searchTab === 'teacher' ? (
+                    {searchTab === "teacher" ? (
                       <UserIcon width={20} height={20} />
                     ) : (
                       <UserIconBlackIcon width={20} height={20} />
@@ -1882,7 +2220,11 @@ export default function HomeScreen() {
                   >
                     <Text style={styles.searchItemText}>{item}</Text>
                     {isFavorite(searchTab, item) && (
-                      <FavoriteIcon width={16} height={16} style={styles.searchItemFavorite} />
+                      <FavoriteIcon
+                        width={16}
+                        height={16}
+                        style={styles.searchItemFavorite}
+                      />
                     )}
                   </TouchableOpacity>
                 )}
@@ -1892,7 +2234,7 @@ export default function HomeScreen() {
         </Animated.View>
       )}
 
-      {subscriptionPickerOpen && currentPage === 'subscriptions' && (
+      {subscriptionPickerOpen && currentPage === "subscriptions" && (
         <Animated.View
           style={[
             styles.subscriptionPickerOverlay,
@@ -1912,8 +2254,12 @@ export default function HomeScreen() {
           </TouchableOpacity>
 
           <View style={styles.subscriptionPickerTop}>
-            <Text style={styles.subscriptionPickerTitle}>Добавить подписку</Text>
-            <Text style={styles.subscriptionPickerCounter}>{subscriptions.length}/10</Text>
+            <Text style={styles.subscriptionPickerTitle}>
+              Добавить подписку
+            </Text>
+            <Text style={styles.subscriptionPickerCounter}>
+              {subscriptions.length}/10
+            </Text>
           </View>
 
           <View style={styles.subscriptionPickerSearchBox}>
@@ -1929,7 +2275,8 @@ export default function HomeScreen() {
           {subscriptionCooldown > 0 && (
             <View style={styles.subscriptionPickerCooldown}>
               <Text style={styles.subscriptionPickerCooldownText}>
-                Подождите ещё {subscriptionCooldown} c перед следующим добавлением
+                Подождите ещё {subscriptionCooldown} c перед следующим
+                добавлением
               </Text>
             </View>
           )}
@@ -1940,31 +2287,41 @@ export default function HomeScreen() {
                 style={[
                   styles.searchTabButton,
                   styles.searchTabButtonLeft,
-                  subscriptionPickerTab === 'group' && styles.searchTabButtonActive,
+                  subscriptionPickerTab === "group" &&
+                    styles.searchTabButtonActive,
                 ]}
                 onPress={() => {
-                  setSubscriptionPickerTab('group');
-                  setSubscriptionPickerSearch('');
+                  setSubscriptionPickerTab("group");
+                  setSubscriptionPickerSearch("");
                 }}
               >
-                {subscriptionPickerTab === 'group' ? (
-                  <CombinedIcon width={24} height={24} style={{ marginTop: 6 }} />
+                {subscriptionPickerTab === "group" ? (
+                  <CombinedIcon
+                    width={24}
+                    height={24}
+                    style={{ marginTop: 6 }}
+                  />
                 ) : (
-                  <CombinedIconBlackIcon width={24} height={24} style={{ marginTop: 6 }} />
+                  <CombinedIconBlackIcon
+                    width={24}
+                    height={24}
+                    style={{ marginTop: 6 }}
+                  />
                 )}
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
                   styles.searchTabButton,
                   styles.searchTabButtonCenter,
-                  subscriptionPickerTab === 'cabinet' && styles.searchTabButtonActive,
+                  subscriptionPickerTab === "cabinet" &&
+                    styles.searchTabButtonActive,
                 ]}
                 onPress={() => {
-                  setSubscriptionPickerTab('cabinet');
-                  setSubscriptionPickerSearch('');
+                  setSubscriptionPickerTab("cabinet");
+                  setSubscriptionPickerSearch("");
                 }}
               >
-                {subscriptionPickerTab === 'cabinet' ? (
+                {subscriptionPickerTab === "cabinet" ? (
                   <CabinetIcon width={20} height={20} />
                 ) : (
                   <CabinetBlackIcon width={20} height={20} />
@@ -1974,14 +2331,15 @@ export default function HomeScreen() {
                 style={[
                   styles.searchTabButton,
                   styles.searchTabButtonRight,
-                  subscriptionPickerTab === 'teacher' && styles.searchTabButtonActive,
+                  subscriptionPickerTab === "teacher" &&
+                    styles.searchTabButtonActive,
                 ]}
                 onPress={() => {
-                  setSubscriptionPickerTab('teacher');
-                  setSubscriptionPickerSearch('');
+                  setSubscriptionPickerTab("teacher");
+                  setSubscriptionPickerSearch("");
                 }}
               >
-                {subscriptionPickerTab === 'teacher' ? (
+                {subscriptionPickerTab === "teacher" ? (
                   <UserIcon width={20} height={20} />
                 ) : (
                   <UserIconBlackIcon width={20} height={20} />
@@ -1992,25 +2350,32 @@ export default function HomeScreen() {
 
           <FlatList
             data={subscriptionPickerFilteredData}
-            keyExtractor={(item, index) => `${subscriptionPickerTab}-${item}-${index}`}
+            keyExtractor={(item, index) =>
+              `${subscriptionPickerTab}-${item}-${index}`
+            }
             numColumns={2}
             columnWrapperStyle={styles.subscriptionPickerListRow}
             contentContainerStyle={styles.subscriptionPickerList}
-            ListEmptyComponent={(
+            ListEmptyComponent={
               <View style={styles.subscriptionPickerEmpty}>
-                <Text style={styles.subscriptionPickerEmptyText}>Ничего не нашлось</Text>
+                <Text style={styles.subscriptionPickerEmptyText}>
+                  Ничего не нашлось
+                </Text>
               </View>
-            )}
+            }
             renderItem={({ item }) => {
               const selected = isSubscribed(subscriptionPickerTab, item);
-              const disabled = (!selected && subscriptionLimitReached) || selected;
+              const disabled =
+                (!selected && subscriptionLimitReached) || selected;
 
               return (
                 <TouchableOpacity
                   style={[
                     styles.subscriptionPickerItem,
                     selected && styles.subscriptionPickerItemSelected,
-                    !selected && subscriptionLimitReached && styles.subscriptionPickerItemDisabled,
+                    !selected &&
+                      subscriptionLimitReached &&
+                      styles.subscriptionPickerItemDisabled,
                   ]}
                   activeOpacity={0.7}
                   onPress={() => {
@@ -2021,7 +2386,11 @@ export default function HomeScreen() {
                   disabled={disabled}
                 >
                   <Text style={styles.subscriptionPickerItemText}>{item}</Text>
-                  {selected && <Text style={styles.subscriptionPickerItemStatus}>В подписках</Text>}
+                  {selected && (
+                    <Text style={styles.subscriptionPickerItemStatus}>
+                      В подписках
+                    </Text>
+                  )}
                 </TouchableOpacity>
               );
             }}
@@ -2029,7 +2398,7 @@ export default function HomeScreen() {
         </Animated.View>
       )}
 
-      {currentPage === 'home' && (
+      {currentPage === "home" && (
         <View style={styles.bottomTabs}>
           <View style={styles.toggleContainer}>
             <Animated.View
@@ -2049,24 +2418,26 @@ export default function HomeScreen() {
             />
             <TouchableOpacity
               activeOpacity={0.7}
-              onPress={() => setActiveTab('calendar')}
+              onPress={() => setActiveTab("calendar")}
               style={styles.toggleButton}
             >
               <CalendarIcon
                 width={20}
                 height={20}
-                style={activeTab === 'calendar' ? undefined : styles.inactiveIcon}
+                style={
+                  activeTab === "calendar" ? undefined : styles.inactiveIcon
+                }
               />
             </TouchableOpacity>
             <TouchableOpacity
               activeOpacity={0.7}
-              onPress={() => setActiveTab('bell')}
+              onPress={() => setActiveTab("bell")}
               style={styles.toggleButton}
             >
               <BellIcon
                 width={20}
                 height={20}
-                style={activeTab === 'bell' ? undefined : styles.inactiveIcon}
+                style={activeTab === "bell" ? undefined : styles.inactiveIcon}
               />
             </TouchableOpacity>
           </View>
@@ -2079,53 +2450,53 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F1318',
+    backgroundColor: "#0F1318",
   },
   topBar: {
     paddingHorizontal: 16,
     paddingTop: 44,
     paddingBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   burgerButton: {
     height: 40,
     width: 40,
     borderRadius: 12,
-    backgroundColor: '#1B2129',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#1B2129",
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 12,
   },
-  burgerIcon: { color: '#D1D5DB' },
+  burgerIcon: { color: "#D1D5DB" },
   overlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     zIndex: 1001,
   },
   overlayTouchable: {
     flex: 1,
   },
   sideMenu: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     bottom: 0,
     maxWidth: MENU_WIDTH,
-    height: Dimensions.get('window').height,
-    backgroundColor: '#191C21',
+    height: Dimensions.get("window").height,
+    backgroundColor: "#191C21",
     zIndex: 1002,
     paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 30,
   },
   menuHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 40,
   },
   logoImage: {
@@ -2134,16 +2505,16 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   appTitle: {
-    color: '#F3F4F6',
+    color: "#F3F4F6",
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   menuItems: {
     flex: 1,
   },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 16,
     paddingHorizontal: 12,
     borderRadius: 12,
@@ -2155,179 +2526,179 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   menuItemText: {
-    color: '#F3F4F6',
+    color: "#F3F4F6",
     fontSize: 16,
   },
   menuFooter: {
     paddingBottom: 14,
-    alignItems: 'center',
+    alignItems: "center",
   },
   footerText: {
-    color: '#9CA3AF',
+    color: "#9CA3AF",
     fontSize: 12,
   },
   searchBox: {
     flex: 1,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#1B2129',
+    backgroundColor: "#1B2129",
     paddingHorizontal: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
-  searchInput: { flex: 1, color: '#F3F4F6' },
-  searchIcon: { color: '#9CA3AF' },
+  searchInput: { flex: 1, color: "#F3F4F6" },
+  searchIcon: { color: "#9CA3AF" },
   targetHint: {
     marginHorizontal: 16,
     marginTop: 8,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: '#1B2129',
+    backgroundColor: "#1B2129",
   },
   targetHintTitle: {
-    color: '#F3F4F6',
+    color: "#F3F4F6",
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 4,
   },
   targetHintText: {
-    color: '#9CA3AF',
+    color: "#9CA3AF",
     fontSize: 13,
     lineHeight: 18,
   },
   dateRow: {
     paddingHorizontal: 16,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   dateArrowButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   dateArrowButtonDisabled: {
     opacity: 0.3,
   },
   dateArrowText: {
-    color: '#F3F4F6',
+    color: "#F3F4F6",
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   datePill: {
     height: 32,
     borderRadius: 999,
-    backgroundColor: '#191C21',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    backgroundColor: "#191C21",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 10,
-    alignSelf: 'center',
-    maxWidth: '90%',
+    alignSelf: "center",
+    maxWidth: "90%",
   },
-  dateText: { color: '#E5E7EB', fontSize: 13, flexShrink: 1, marginRight: 6 },
+  dateText: { color: "#E5E7EB", fontSize: 13, flexShrink: 1, marginRight: 6 },
   listContent: { padding: 16 },
   scheduleEmpty: {
     paddingHorizontal: 16,
     paddingVertical: 32,
-    alignItems: 'center',
+    alignItems: "center",
   },
   scheduleEmptyText: {
-    color: '#9CA3AF',
+    color: "#9CA3AF",
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
   },
-  footerLinkContainer: { alignItems: 'center', paddingVertical: 16 },
-  footerInline: { alignItems: 'center', paddingTop: 8, paddingBottom: 4 },
-  footerStatic: { alignItems: 'center', paddingVertical: 24 },
-  footerLinkText: { color: '#BFBFBF', fontSize: 12, fontWeight: '400' },
+  footerLinkContainer: { alignItems: "center", paddingVertical: 16 },
+  footerInline: { alignItems: "center", paddingTop: 8, paddingBottom: 4 },
+  footerStatic: { alignItems: "center", paddingVertical: 24 },
+  footerLinkText: { color: "#BFBFBF", fontSize: 12, fontWeight: "400" },
   card: {
     borderRadius: 16,
-    backgroundColor: '#171C22',
+    backgroundColor: "#171C22",
     padding: 12,
     marginBottom: 12,
   },
-  cardRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  cardRow: { flexDirection: "row", alignItems: "flex-start" },
   timeCol: {
     width: 64,
-    alignItems: 'flex-start',
+    alignItems: "flex-start",
     paddingBottom: 4,
-    position: 'relative',
+    position: "relative",
   },
-  startTime: { color: '#F3F4F6', fontSize: 20, fontWeight: '600' },
-  endTime: { color: '#9CA3AF', fontSize: 15, marginTop: 4 },
+  startTime: { color: "#F3F4F6", fontSize: 20, fontWeight: "600" },
+  endTime: { color: "#9CA3AF", fontSize: 15, marginTop: 4 },
   lessonNumberWrap: {
-    position: 'absolute',
+    position: "absolute",
     top: 64,
     left: 0,
     height: 26,
     width: 26,
     borderRadius: 14,
-    backgroundColor: '#D1D5DB',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#D1D5DB",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  lessonNumber: { color: '#1B2129', fontSize: 16, fontWeight: 800 },
+  lessonNumber: { color: "#1B2129", fontSize: 16, fontWeight: 800 },
   cardContent: { flex: 1 },
   titleBar: { marginBottom: 8 },
   titleBarInner: {
     borderRadius: 12,
-    backgroundColor: '#1B2129',
+    backgroundColor: "#1B2129",
     paddingHorizontal: 12,
     paddingVertical: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
-  titleText: { color: '#F3F4F6', fontSize: 13, fontWeight: '500', flex: 1 },
+  titleText: { color: "#F3F4F6", fontSize: 13, fontWeight: "500", flex: 1 },
   badge: {
     height: 24,
     paddingHorizontal: 8,
     borderRadius: 999,
-    backgroundColor: '#273244',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#273244",
+    alignItems: "center",
+    justifyContent: "center",
     marginLeft: 8,
   },
-  badgeText: { color: '#E5E7EB', fontSize: 12 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-  metaRowAlt: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
-  metaItem: { flexDirection: 'row', alignItems: 'center', marginRight: 12 },
-  metaIcon: { color: '#9CA3AF' },
-  metaText: { color: '#E5E7EB', fontSize: 13, maxWidth: '90%' },
-  infoLine: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+  badgeText: { color: "#E5E7EB", fontSize: 12 },
+  metaRow: { flexDirection: "row", alignItems: "center", marginTop: 4 },
+  metaRowAlt: { flexDirection: "row", alignItems: "center", marginTop: 8 },
+  metaItem: { flexDirection: "row", alignItems: "center", marginRight: 12 },
+  metaIcon: { color: "#9CA3AF" },
+  metaText: { color: "#E5E7EB", fontSize: 13, maxWidth: "90%" },
+  infoLine: { flexDirection: "row", alignItems: "center", marginTop: 6 },
   groupInfoLine: { marginTop: 10 },
   lessonVariantDivider: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#232832',
+    borderTopColor: "#232832",
   },
   icon: { marginRight: 8 },
   bottomTabs: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 12,
     paddingBottom: 60,
     marginBottom: 32,
-    backgroundColor: '#0F1318',
+    backgroundColor: "#0F1318",
   },
   toggleContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#1B2129',
+    flexDirection: "row",
+    backgroundColor: "#1B2129",
     borderRadius: 28,
     padding: 6,
     width: 120,
-    justifyContent: 'space-between',
-    position: 'relative',
+    justifyContent: "space-between",
+    position: "relative",
   },
   toggleBackground: {
-    position: 'absolute',
+    position: "absolute",
     width: 52,
     height: 52,
     borderRadius: 24,
-    backgroundColor: '#3D4A5D',
+    backgroundColor: "#3D4A5D",
     top: 6,
     left: 6,
   },
@@ -2335,8 +2706,8 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     zIndex: 1,
   },
   inactiveIcon: {
@@ -2348,11 +2719,11 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   notificationsTitle: {
-    color: '#F3F4F6',
+    color: "#F3F4F6",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 12,
-    textAlign: 'center',
+    textAlign: "center",
   },
   notificationsList: {
     paddingBottom: 24,
@@ -2362,12 +2733,12 @@ const styles = StyleSheet.create({
   },
   notificationsEmpty: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 64,
   },
   notificationsEmptyText: {
-    color: '#9CA3AF',
+    color: "#9CA3AF",
     fontSize: 14,
     marginTop: 8,
   },
@@ -2375,87 +2746,87 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   notificationsPreviewTitle: {
-    color: '#9CA3AF',
+    color: "#9CA3AF",
     fontSize: 12,
     letterSpacing: 0.4,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     marginBottom: 8,
   },
   notificationCard: {
-    backgroundColor: '#171C22',
+    backgroundColor: "#171C22",
     borderRadius: 16,
     padding: 12,
     marginBottom: 12,
     paddingBottom: 28,
-    position: 'relative',
+    position: "relative",
     minHeight: 70,
   },
   notificationCardPreview: {
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: "rgba(255, 255, 255, 0.08)",
   },
   notificationHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 6,
   },
   notificationGroupTitle: {
-    color: '#F3F4F6',
+    color: "#F3F4F6",
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
     flex: 1,
   },
   notificationDateText: {
-    color: '#9CA3AF',
+    color: "#9CA3AF",
     fontSize: 12,
   },
   notificationDateContainer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 8,
     right: 12,
   },
   notificationCardRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     marginTop: 0,
     paddingBottom: 20,
   },
   notificationTimeCol: {
     width: 64,
-    alignItems: 'flex-start',
+    alignItems: "flex-start",
     paddingBottom: 32,
-    position: 'relative',
+    position: "relative",
   },
   notificationStartTime: {
-    color: '#F3F4F6',
+    color: "#F3F4F6",
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   notificationEndTime: {
-    color: '#9CA3AF',
+    color: "#9CA3AF",
     fontSize: 15,
     marginTop: 4,
   },
   notificationLessonNumberWrap: {
-    position: 'absolute',
+    position: "absolute",
     top: 64,
     left: 0,
     height: 26,
     width: 26,
     borderRadius: 14,
-    backgroundColor: '#D1D5DB',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#D1D5DB",
+    alignItems: "center",
+    justifyContent: "center",
   },
   notificationLessonNumber: {
-    color: '#1B2129',
+    color: "#1B2129",
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   notificationCardContent: {
     flex: 1,
-    position: 'relative',
+    position: "relative",
   },
   notificationCardContentWithBadge: {
     paddingTop: 32,
@@ -2465,31 +2836,31 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   notificationGroupBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1B2129',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1B2129",
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 6,
     gap: 6,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginBottom: 8,
   },
   notificationGroupBadgeText: {
-    color: '#F3F4F6',
+    color: "#F3F4F6",
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   notificationInfoLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 6,
     gap: 6,
   },
   notificationMetaText: {
-    color: '#E5E7EB',
+    color: "#E5E7EB",
     fontSize: 13,
-    maxWidth: '90%',
+    maxWidth: "90%",
   },
   subscriptionsContainer: {
     flex: 1,
@@ -2497,75 +2868,75 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   subscriptionsTitle: {
-    color: '#F3F4F6',
+    color: "#F3F4F6",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 12,
-    textAlign: 'center',
+    textAlign: "center",
   },
   subscriptionsList: {
     paddingBottom: 120,
   },
   subscriptionCard: {
-    width: '100%',
+    width: "100%",
     borderRadius: 16,
-    backgroundColor: '#171C22',
+    backgroundColor: "#171C22",
     paddingVertical: 20,
     paddingHorizontal: 18,
     marginBottom: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     minHeight: 76,
-    alignSelf: 'stretch',
+    alignSelf: "stretch",
   },
   subscriptionTitle: {
     flex: 1,
-    color: '#F3F4F6',
+    color: "#F3F4F6",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginRight: 12,
   },
   subscriptionDelete: {
     height: 28,
     width: 28,
     borderRadius: 14,
-    backgroundColor: '#1B2129',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#1B2129",
+    alignItems: "center",
+    justifyContent: "center",
   },
   fabAdd: {
-    position: 'absolute',
+    position: "absolute",
     right: 16,
     bottom: 80,
     height: 56,
     width: 56,
     borderRadius: 28,
-    backgroundColor: '#3D4A5D',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#3D4A5D",
+    alignItems: "center",
+    justifyContent: "center",
     zIndex: 10,
   },
   fabAddDisabled: {
-    backgroundColor: '#2A3443',
+    backgroundColor: "#2A3443",
     opacity: 0.6,
   },
   fabAddText: {
-    color: '#F3F4F6',
+    color: "#F3F4F6",
     fontSize: 28,
     lineHeight: 32,
     marginTop: -4,
   },
   subscriptionsFooter: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     right: 0,
     bottom: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   subscriptionsCounter: {
-    color: '#BFBFBF',
+    color: "#BFBFBF",
     fontSize: 14,
   },
   bellsContainer: {
@@ -2573,10 +2944,10 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   bellsTitle: {
-    color: '#F3F4F6',
+    color: "#F3F4F6",
     fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: "600",
+    textAlign: "center",
     marginBottom: 12,
     paddingHorizontal: 16,
   },
@@ -2585,7 +2956,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   bellCard: {
-    backgroundColor: '#171C22',
+    backgroundColor: "#171C22",
     borderRadius: 12,
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -2593,35 +2964,35 @@ const styles = StyleSheet.create({
     maxHeight: 400,
   },
   bellCardTitle: {
-    color: '#F3F4F6',
+    color: "#F3F4F6",
     fontSize: 18,
-    fontWeight: '700',
-    textAlign: 'center',
+    fontWeight: "700",
+    textAlign: "center",
     marginBottom: 18,
   },
   bellRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 16,
   },
   bellNum: {
     height: 30,
     width: 30,
     borderRadius: 15,
-    backgroundColor: '#D1D5DB',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#D1D5DB",
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 10,
   },
   bellNumText: {
-    color: '#1B2129',
+    color: "#1B2129",
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   bellTime: {
-    color: '#F3F4F6',
+    color: "#F3F4F6",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   themesContainer: {
     flex: 1,
@@ -2629,58 +3000,58 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   themesTitle: {
-    color: '#F3F4F6',
+    color: "#F3F4F6",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 12,
-    textAlign: 'center',
+    textAlign: "center",
   },
   themesEmpty: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   themesIcon: {
     opacity: 0.5,
     marginBottom: 16,
   },
   themesEmptyText: {
-    color: '#9CA3AF',
+    color: "#9CA3AF",
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   searchOverlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#0F1318',
+    backgroundColor: "#0F1318",
     zIndex: 1000,
   },
   searchHandle: {
-    position: 'absolute',
+    position: "absolute",
     top: 28,
     left: 0,
     right: 0,
     paddingTop: 8,
     paddingBottom: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     zIndex: 1,
   },
   searchTopBar: {
     paddingHorizontal: 16,
     paddingTop: 44,
     paddingBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   searchHandleBar: {
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   searchContent: {
     flex: 1,
@@ -2690,27 +3061,27 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   favoritesHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 8,
   },
   favoritesTitle: {
-    color: '#F3F4F6',
+    color: "#F3F4F6",
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
     marginLeft: 12,
   },
   favoritesDescription: {
-    color: '#9CA3AF',
+    color: "#9CA3AF",
     fontSize: 14,
     marginBottom: 12,
   },
   favoritesList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
   },
   favoriteItem: {
-    backgroundColor: '#171C22',
+    backgroundColor: "#171C22",
     borderRadius: 12,
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -2718,21 +3089,21 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   favoriteItemText: {
-    color: '#F3F4F6',
+    color: "#F3F4F6",
     fontSize: 14,
   },
   searchSection: {
     flex: 1,
   },
   searchSectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 16,
   },
   searchSectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   searchSectionIcon: {
     marginRight: 8,
@@ -2742,19 +3113,19 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   searchSectionTitle: {
-    color: '#F3F4F6',
+    color: "#F3F4F6",
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   searchTabSwitcher: {
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   searchTabButton: {
     width: 36,
     height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#D9D9D9',
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#D9D9D9",
   },
   searchTabButtonLeft: {
     borderTopLeftRadius: 18,
@@ -2770,147 +3141,147 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 18,
   },
   searchTabButtonActive: {
-    backgroundColor: '#506681',
+    backgroundColor: "#506681",
   },
   searchList: {
     paddingBottom: 24,
   },
   searchListRow: {
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
     marginBottom: 12,
   },
   searchItem: {
     flex: 1,
-    backgroundColor: '#171C22',
+    backgroundColor: "#171C22",
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 12,
     marginHorizontal: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     minHeight: 56,
-    position: 'relative',
+    position: "relative",
   },
   searchItemText: {
-    color: '#F3F4F6',
+    color: "#F3F4F6",
     fontSize: 16,
-    fontWeight: '500',
-    textAlign: 'center',
+    fontWeight: "500",
+    textAlign: "center",
   },
   searchItemFavorite: {
-    position: 'absolute',
+    position: "absolute",
     top: 8,
     right: 8,
   },
   subscriptionPickerOverlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#0F1318',
+    backgroundColor: "#0F1318",
     zIndex: 1000,
     paddingHorizontal: 16,
     paddingTop: 44,
   },
   subscriptionPickerHandle: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 12,
   },
   subscriptionPickerHandleBar: {
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   subscriptionPickerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
   },
   subscriptionPickerTitle: {
-    color: '#F3F4F6',
+    color: "#F3F4F6",
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   subscriptionPickerCounter: {
-    color: '#9CA3AF',
+    color: "#9CA3AF",
     fontSize: 14,
   },
   subscriptionPickerSearchBox: {
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#1B2129',
+    backgroundColor: "#1B2129",
     paddingHorizontal: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   subscriptionPickerSearchInput: {
     flex: 1,
-    color: '#F3F4F6',
+    color: "#F3F4F6",
   },
   subscriptionPickerCooldown: {
     marginTop: 12,
-    backgroundColor: '#1F2531',
+    backgroundColor: "#1F2531",
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   subscriptionPickerCooldownText: {
-    color: '#F3F4F6',
+    color: "#F3F4F6",
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   subscriptionPickerTabRow: {
     marginTop: 16,
     marginBottom: 12,
-    alignItems: 'center',
+    alignItems: "center",
   },
   subscriptionPickerList: {
     paddingBottom: 48,
   },
   subscriptionPickerListRow: {
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
     marginBottom: 12,
   },
   subscriptionPickerItem: {
     flex: 1,
-    backgroundColor: '#171C22',
+    backgroundColor: "#171C22",
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 12,
     marginHorizontal: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     minHeight: 56,
   },
   subscriptionPickerItemSelected: {
     borderWidth: 1,
-    borderColor: '#506681',
+    borderColor: "#506681",
   },
   subscriptionPickerItemDisabled: {
     opacity: 0.4,
   },
   subscriptionPickerItemText: {
-    color: '#F3F4F6',
+    color: "#F3F4F6",
     fontSize: 16,
-    fontWeight: '500',
-    textAlign: 'center',
+    fontWeight: "500",
+    textAlign: "center",
   },
   subscriptionPickerItemStatus: {
     marginTop: 6,
-    color: '#9CA3AF',
+    color: "#9CA3AF",
     fontSize: 12,
   },
   subscriptionPickerEmpty: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 32,
   },
   subscriptionPickerEmptyText: {
-    color: '#9CA3AF',
+    color: "#9CA3AF",
     fontSize: 14,
   },
 });
