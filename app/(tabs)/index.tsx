@@ -1513,7 +1513,7 @@ export default function HomeScreen() {
             <TouchableOpacity
               activeOpacity={0.7}
               style={{
-                backgroundColor: "#191c21",
+                backgroundColor: "#3d3d3d",
                 padding: 10,
                 marginHorizontal: 20,
                 borderRadius: 10,
@@ -1526,8 +1526,8 @@ export default function HomeScreen() {
                 )
               }
             >
-              <Text style={{ color: "#fff", fontWeight: "bold" }}>
-                Новая версия: {newVersion}
+              <Text style={{ color: "#fff" }}>
+                Актуальная версия: {newVersion}
               </Text>
             </TouchableOpacity>
           )}
