@@ -8,7 +8,7 @@
 
 Выберите удобный для вас способ скачивания:
 
-[<img src=".github/github.png" alt="Скачать с GitHub" height="70" align="center">](https://github.com/RanVix/RKSIPlanshetkaMobile/releases/download/v0.3.1b/planshetka-v0.3.1b.apk)
+[<img src=".github/github.png" alt="Скачать с GitHub" height="70" align="center">](https://github.com/RanVix/RKSIPlanshetkaMobile/releases/download/v0.4.1b/planshetka-v0.4.1b.apk)
 [<img src=".github/rustore.png" alt="Скачать с RuStore" height="70" align="center">](https://www.rustore.ru/catalog/app/com.ranvix.RKSIPlanshetka)
 
 > **Примечание:** Приложение в RuStore появится в финальном релизе
@@ -34,7 +34,7 @@
   - [x] Уведомления
   - [x] RuStore
   - [x] Автообновление
-  - [x] Темы <-- _вы сейчас тут!_
+  - [ ] Темы <-- _вы сейчас тут!_
 - [ ] **Финальный релиз**
 
 <div align="center">
