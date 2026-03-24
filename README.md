@@ -11,8 +11,6 @@
 [<img src=".github/github.png" alt="Скачать с GitHub" height="70" align="center">](https://github.com/RanVix/RKSIPlanshetkaMobile/releases/download/v0.4.1b/planshetka-v0.4.1b.apk)
 [<img src=".github/rustore.png" alt="Скачать с RuStore" height="70" align="center">](https://www.rustore.ru/catalog/app/com.ranvix.RKSIPlanshetka)
 
-> **Примечание:** Приложение в RuStore появится в финальном релизе
-
 ## 📸 Скриншоты
 
 |  <img src=".github/Main.png" height="700">  |    <img src=".github/Search.png" height="700">     | <img src=".github/Subscribes.png" height="700"> |
@@ -40,6 +38,6 @@
 <div align="center">
 
 [GNU AGPL v3 License](./LICENSE)<br>
-**© 2025 RanVix & Yarovich**
+**© 2026 RanVix & Yarovich**
 
 </div>
