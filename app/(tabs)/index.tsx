@@ -34,6 +34,7 @@ import { getCachedDeviceToken, getDeviceToken } from "@/lib/deviceTokenCache";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { isAxiosError } from "axios";
 import Constants from "expo-constants";
+import * as SplashScreen from "expo-splash-screen";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -497,6 +498,7 @@ export default function HomeScreen() {
   const scheduleRequestKeyRef = useRef<string | null>(null);
   const [showScheduleTargetHint, setShowScheduleTargetHint] = useState(false);
   const [menuRendered, setMenuRendered] = useState(false);
+  const [appBootstrapped, setAppBootstrapped] = useState(false);
 
   // Синхронизация скролла при клике на стрелки
   useEffect(() => {
@@ -607,6 +609,94 @@ export default function HomeScreen() {
       </View>
     );
   };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const bootstrapFromCache = async () => {
+      try {
+        const [
+          cachedGroups,
+          cachedCabinets,
+          cachedTeachers,
+          favoritesRaw,
+          cachedTargetRaw,
+          cachedNotifications,
+        ] = await Promise.all([
+          getCachedGroups(),
+          getCachedCabinets(),
+          getCachedTeachers(),
+          AsyncStorage.getItem("favorites"),
+          AsyncStorage.getItem(SCHEDULE_TARGET_CACHE_KEY),
+          readNotificationsCache(),
+        ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        if (cachedGroups) {
+          setGroups(cachedGroups);
+        }
+        if (cachedCabinets) {
+          setCabinets(cachedCabinets);
+        }
+        if (cachedTeachers) {
+          setTeachers(cachedTeachers);
+        }
+        if (favoritesRaw) {
+          setFavorites(JSON.parse(favoritesRaw));
+        }
+        if (cachedNotifications.length > 0) {
+          setNotifications(cachedNotifications);
+        }
+
+        if (cachedTargetRaw) {
+          const parsed = JSON.parse(cachedTargetRaw);
+          if (parsed?.name && parsed?.type) {
+            setCurrentScheduleTarget(parsed);
+            setShowScheduleTargetHint(false);
+
+            const targetKey = `${parsed.type}:${parsed.name}`;
+            const cachedScheduleDays = await getCachedScheduleForTarget(
+              targetKey,
+            );
+            if (isMounted && cachedScheduleDays.length > 0) {
+              setScheduleDays(cachedScheduleDays);
+              setSelectedScheduleIndex(0);
+            }
+          } else {
+            setShowScheduleTargetHint(true);
+          }
+        } else {
+          setShowScheduleTargetHint(true);
+        }
+      } catch (error) {
+        console.error("Failed to bootstrap cached data", error);
+        if (isMounted) {
+          setShowScheduleTargetHint(true);
+        }
+      } finally {
+        if (isMounted) {
+          setAppBootstrapped(true);
+        }
+      }
+    };
+
+    bootstrapFromCache();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (appBootstrapped) {
+      SplashScreen.hideAsync().catch((error) => {
+        console.error("Failed to hide splash screen", error);
+      });
+    }
+  }, [appBootstrapped]);
 
   useEffect(() => {
     let isMounted = true;

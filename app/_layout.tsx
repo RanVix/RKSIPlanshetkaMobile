@@ -26,8 +26,6 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   useEffect(() => {
-    SplashScreen.hideAsync();
-    
     // Настройка системной панели для Android
     if (Platform.OS === 'android') {
       // Делаем панель прозрачной, чтобы она подхватила цвет фона View
