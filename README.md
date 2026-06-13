@@ -34,12 +34,12 @@
   - [x] Уведомления
   - [x] RuStore
   - [x] Автообновление
-  - [x] Темы <-- _вы сейчас тут!_
+  - [ ] Темы <-- _вы сейчас тут!_
 - [ ] **Финальный релиз**
 
 <div align="center">
 
 [GNU AGPL v3 License](./LICENSE)<br>
-**© 2025 RanVix & Yarovich**
+**© 2026 RanVix & Yarovich**
 
 </div>

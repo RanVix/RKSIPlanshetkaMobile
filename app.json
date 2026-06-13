@@ -2,7 +2,7 @@
   "expo": {
     "name": "Планшетка",
     "slug": "RKSIPlanshetka",
-    "version": "0.4.1b",
+    "version": "0.4.2b",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "rksiplanshetka",
@@ -79,6 +79,7 @@
       "eas": {
         "projectId": "078dd5bf-5e0a-4d18-b428-49b32c2e10db"
       }
-    }
+    },
+    "owner": "ranvix"
   }
 }
