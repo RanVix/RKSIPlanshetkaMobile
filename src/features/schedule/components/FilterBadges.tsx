@@ -24,7 +24,7 @@ export const FilterBadges: React.FC<FilterBadgesProps> = ({ filters }) => {
       <View style={styles.container}>
         {filters.map((filter) => (
           <View key={filter.id} style={styles.badge}>
-            <Feather name={filter.icon} size={16} color={COLORS.textPrimary} />
+            <Feather name={filter.icon} size={16} color={"#AEAEB2"} />
             <Text style={styles.text}>{filter.text}</Text>
           </View>
         ))}
@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 14,
+    borderRadius: 12,
     gap: 6,
 
     shadowColor: "#000000",
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   text: {
-    color: COLORS.textPrimary,
+    color: "#AEAEB2",
     fontSize: 12,
     fontWeight: "400",
   },

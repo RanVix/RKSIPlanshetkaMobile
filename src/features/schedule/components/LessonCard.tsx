@@ -39,7 +39,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({ lesson }) => {
               {teacher.name && (
                 <View style={styles.infoRow}>
                   <View style={styles.iconContainer}>
-                    <UserIcon width={13} height={13} color="#E1E4E8" />
+                    <UserIcon width={15} height={15} color="#E1E4E8" />
                   </View>
                   <Text style={styles.infoText}>{teacher.name}</Text>
                 </View>
@@ -49,7 +49,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({ lesson }) => {
               {teacher.room && (
                 <View style={styles.infoRow}>
                   <View style={styles.iconContainer}>
-                    <CabinetIcon width={13} height={13} color="#E1E4E8" />
+                    <CabinetIcon width={15} height={15} color="#E1E4E8" />
                   </View>
                   <Text style={styles.infoText}>{teacher.room}</Text>
                 </View>
@@ -59,7 +59,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({ lesson }) => {
               {teacher.group && (
                 <View style={styles.infoRow}>
                   <View style={styles.iconContainer}>
-                    <CombinedIcon width={13} height={13} color="#E1E4E8" />
+                    <CombinedIcon width={15} height={15} color="#E1E4E8" />
                   </View>
                   <Text style={styles.infoText}>{teacher.group}</Text>
                 </View>
@@ -103,13 +103,13 @@ const styles = StyleSheet.create({
     width: 65,
   },
   startTime: {
-    fontSize: 20,
+    fontSize: 21,
     fontWeight: "700",
     color: "#FFFFFF",
     letterSpacing: -0.5,
   },
   endTime: {
-    fontSize: 14,
+    fontSize: 18,
     color: "#8B949E",
     marginTop: 2,
   },
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   subjectTitle: {
-    fontSize: 15,
+    fontSize: 18,
     fontWeight: "500",
     color: "#FFFFFF",
   },
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
   },
   iconContainer: {
     width: 16,
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   infoText: {
-    fontSize: 13,
+    fontSize: 15,
     color: "#FFFFFF",
   },
 
@@ -173,9 +173,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     bottom: 0,
-    width: 26,
-    height: 24,
-    borderTopRightRadius: 10,
+    width: 32,
+    height: 30,
+    borderTopRightRadius: 18,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#2F80ED",
   },
   badgeText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "700",
   },
   textDark: {

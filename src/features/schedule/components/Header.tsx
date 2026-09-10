@@ -41,6 +41,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: 24,
     padding: 4,
+    height: 40,
   },
   iconButton: {
     width: 40,
