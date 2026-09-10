@@ -14,10 +14,10 @@ export const Header: React.FC<HeaderProps> = ({ groupName }) => {
 
       <View style={styles.actions}>
         <TouchableOpacity style={styles.iconButton}>
-          <Feather name="search" size={20} color={COLORS.textPrimary} />
+          <Feather name="search" size={18} color={COLORS.textPrimary} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconButton}>
-          <Feather name="sun" size={20} color={COLORS.textPrimary} />
+          <Feather name="sun" size={18} color={COLORS.textPrimary} />
         </TouchableOpacity>
       </View>
     </View>
