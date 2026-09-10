@@ -31,12 +31,12 @@ const TABS: TabItem[] = [
 export const BottomNav: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabId>("pairs");
   const [tabLayouts, setTabLayouts] = useState<
-    Record<string, { x: number; width: number }>
+    Record<string, { x: number; width: number; height: number }>
   >({});
 
   const handleLayout = (id: string, event: LayoutChangeEvent) => {
-    const { x, width } = event.nativeEvent.layout;
-    setTabLayouts((prev) => ({ ...prev, [id]: { x, width } }));
+    const { x, width, height } = event.nativeEvent.layout;
+    setTabLayouts((prev) => ({ ...prev, [id]: { x, width, height } }));
   };
 
   const animatedIndicatorStyle = useAnimatedStyle(() => {
@@ -52,6 +52,7 @@ export const BottomNav: React.FC = () => {
     return {
       opacity: withTiming(1, { duration }),
       width: withTiming(currentLayout.width, { duration, easing }),
+      height: withTiming(currentLayout.height, { duration, easing }),
       transform: [
         {
           translateX: withTiming(currentLayout.x, { duration, easing }),
@@ -118,7 +119,7 @@ const styles = StyleSheet.create({
   activeIndicator: {
     position: "absolute",
     top: 6,
-    bottom: 6,
+    left: 0,
     backgroundColor: "#353D4A",
     borderRadius: 28,
   },
