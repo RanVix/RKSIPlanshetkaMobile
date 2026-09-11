@@ -47,6 +47,7 @@ const styles = StyleSheet.create({
   badge: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     backgroundColor: COLORS.primary,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -63,6 +64,9 @@ const styles = StyleSheet.create({
   text: {
     color: "#AEAEB2",
     fontSize: 12,
+    lineHeight: 16,
     fontWeight: "400",
+    textAlignVertical: "center",
+    includeFontPadding: false,
   },
 });

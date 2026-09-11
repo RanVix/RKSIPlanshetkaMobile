@@ -44,8 +44,8 @@ const styles = StyleSheet.create({
     height: 40,
   },
   iconButton: {
-    width: 40,
-    height: 40,
+    width: 35,
+    height: 35,
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 20,
