@@ -14,6 +14,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { COLORS } from "@/constants/theme";
 import { SearchInput } from "../features/search/components/SearchInput";
 import { SearchSection } from "../features/search/components/SearchSection";
 import { MOCK_SEARCH_DATA, SearchItem } from "../features/search/types/search";
@@ -160,8 +161,11 @@ export const SearchScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "rgba(13, 17, 23, 0.95)",
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     paddingHorizontal: 16,
+    overflow: "hidden",
   },
   dragHandleContainer: {
     alignItems: "center",
