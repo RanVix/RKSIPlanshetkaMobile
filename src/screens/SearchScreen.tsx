@@ -59,7 +59,7 @@ export const SearchScreen: React.FC = () => {
   };
 
   const handleItemPress = (item: SearchItem) => {
-    console.log("Selected:", item.name);
+    // console.log("Selected:", item.name);
   };
 
   const filteredData = useMemo(() => {

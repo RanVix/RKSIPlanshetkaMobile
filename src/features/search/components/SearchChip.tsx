@@ -1,5 +1,5 @@
 import { COLORS } from "@/constants/theme";
-import { Feather } from "@expo/vector-icons";
+import { FontAwesome } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SearchItem } from "../types/search";
@@ -33,9 +33,10 @@ export const SearchChip: React.FC<SearchChipProps> = ({
       >
         {item.name}
       </Text>
+
       {isFavorite && (
-        <View style={styles.iconContainer}>
-          <Feather name="bookmark" size={13} color="#FFFFFF" />
+        <View style={styles.favoriteBadge}>
+          <FontAwesome name="bookmark" size={10} color="#FFFFFF" />
         </View>
       )}
     </TouchableOpacity>
@@ -62,9 +63,9 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
     textAlignVertical: "center",
   },
-  iconContainer: {
+  favoriteBadge: {
     position: "absolute",
-    right: 12,
-    top: 14,
+    top: 8,
+    right: 8,
   },
 });
