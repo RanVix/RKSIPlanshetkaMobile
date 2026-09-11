@@ -9,11 +9,25 @@ export default function RootLayout() {
       <StatusBar hidden={true} />
 
       <Stack
+        initialRouteName="index"
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: COLORS.background },
         }}
-      />
+      >
+        <Stack.Screen name="index" />
+
+        <Stack.Screen
+          name="search"
+          options={{
+            presentation: "transparentModal",
+            animation: "slide_from_bottom",
+            contentStyle: { backgroundColor: "transparent" },
+            gestureEnabled: true,
+            gestureDirection: "vertical",
+          }}
+        />
+      </Stack>
     </View>
   );
 }
