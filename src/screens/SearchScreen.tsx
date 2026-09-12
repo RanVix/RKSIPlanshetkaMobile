@@ -59,8 +59,8 @@ export const SearchScreen: React.FC = () => {
     }
   };
 
-  const handleItemPress = (item: SearchItem) => {
-    // console.log("Selected:", item.name);
+  const handleItemPress = (_item: SearchItem) => {
+    // Выбор элементов
   };
 
   const filteredData = useMemo(() => {
@@ -90,70 +90,70 @@ export const SearchScreen: React.FC = () => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <Animated.View
-        style={[
-          styles.container,
-          { paddingTop: Math.max(insets.top, 12) },
-          animatedStyle,
-        ]}
-      >
-        <GestureDetector gesture={panGesture}>
+      <GestureDetector gesture={panGesture}>
+        <Animated.View
+          style={[
+            styles.container,
+            { paddingTop: Math.max(insets.top, 12) },
+            animatedStyle,
+          ]}
+        >
           <View style={styles.dragHandleContainer}>
             <View style={styles.dragHandle} />
           </View>
-        </GestureDetector>
 
-        <SearchInput
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          onClear={() => setSearchQuery("")}
-          onClose={handleClose}
-        />
+          <SearchInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onClear={() => setSearchQuery("")}
+            onClose={handleClose}
+          />
 
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          {!searchQuery && favorites.length > 0 && (
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+          >
+            {!searchQuery && favorites.length > 0 && (
+              <SearchSection
+                title="Избранное"
+                subtitle="Зажмите, чтобы добавить в избранное"
+                iconName="bookmark"
+                items={favorites}
+                favoriteIds={favoriteIds}
+                onItemPress={handleItemPress}
+                onItemLongPress={handleToggleFavorite}
+              />
+            )}
+
             <SearchSection
-              title="Избранное"
-              subtitle="Зажмите, чтобы добавить в избранное"
-              iconName="bookmark"
-              items={favorites}
+              title="Группы"
+              iconName="users"
+              items={groups}
               favoriteIds={favoriteIds}
               onItemPress={handleItemPress}
               onItemLongPress={handleToggleFavorite}
             />
-          )}
 
-          <SearchSection
-            title="Группы"
-            iconName="users"
-            items={groups}
-            favoriteIds={favoriteIds}
-            onItemPress={handleItemPress}
-            onItemLongPress={handleToggleFavorite}
-          />
+            <SearchSection
+              title="Преподаватели"
+              iconName="user"
+              items={teachers}
+              favoriteIds={favoriteIds}
+              onItemPress={handleItemPress}
+              onItemLongPress={handleToggleFavorite}
+            />
 
-          <SearchSection
-            title="Преподаватели"
-            iconName="user"
-            items={teachers}
-            favoriteIds={favoriteIds}
-            onItemPress={handleItemPress}
-            onItemLongPress={handleToggleFavorite}
-          />
-
-          <SearchSection
-            title="Кабинеты"
-            iconName="sidebar"
-            items={cabinets}
-            favoriteIds={favoriteIds}
-            onItemPress={handleItemPress}
-            onItemLongPress={handleToggleFavorite}
-          />
-        </ScrollView>
-      </Animated.View>
+            <SearchSection
+              title="Кабинеты"
+              iconName="sidebar"
+              items={cabinets}
+              favoriteIds={favoriteIds}
+              onItemPress={handleItemPress}
+              onItemLongPress={handleToggleFavorite}
+            />
+          </ScrollView>
+        </Animated.View>
+      </GestureDetector>
     </GestureHandlerRootView>
   );
 };

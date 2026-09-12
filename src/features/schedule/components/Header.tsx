@@ -29,6 +29,7 @@ export const Header: React.FC<HeaderProps> = ({
     <View style={styles.container}>
       <Text style={styles.title}>{groupName}</Text>
 
+      {/* Единая плашка-капсула */}
       <View style={styles.actions}>
         <TouchableOpacity
           style={styles.iconButton}
@@ -37,6 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Feather name="search" size={18} color={COLORS.textPrimary} />
         </TouchableOpacity>
+
         <TouchableOpacity
           style={styles.iconButton}
           activeOpacity={0.7}
@@ -66,7 +68,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: COLORS.primary,
     borderRadius: 24,
-    padding: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    gap: 8,
   },
   iconButton: {
     width: 35,
