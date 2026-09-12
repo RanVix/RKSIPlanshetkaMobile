@@ -1,5 +1,6 @@
 import { COLORS } from "@/constants/theme";
 import { Feather } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   LayoutChangeEvent,
@@ -14,22 +15,29 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-type TabId = "pairs" | "bells" | "links";
+export type TabId = "pairs" | "bells" | "links";
 
 interface TabItem {
   id: TabId;
   label: string;
   icon: keyof typeof Feather.glyphMap;
+  route: "/" | "/bells" | "/links";
 }
 
 const TABS: TabItem[] = [
-  { id: "pairs", label: "Пары", icon: "calendar" },
-  { id: "bells", label: "Звонки", icon: "clock" },
-  { id: "links", label: "Ссылки", icon: "link" },
+  { id: "pairs", label: "Пары", icon: "calendar", route: "/" },
+  { id: "bells", label: "Звонки", icon: "clock", route: "/bells" },
+  { id: "links", label: "Ссылки", icon: "link", route: "/links" },
 ];
 
-export const BottomNav: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabId>("pairs");
+interface BottomNavProps {
+  activeTab?: TabId;
+}
+
+export const BottomNav: React.FC<BottomNavProps> = ({
+  activeTab = "pairs",
+}) => {
+  const router = useRouter();
   const [tabLayouts, setTabLayouts] = useState<
     Record<string, { x: number; width: number; height: number }>
   >({});
@@ -37,6 +45,12 @@ export const BottomNav: React.FC = () => {
   const handleLayout = (id: string, event: LayoutChangeEvent) => {
     const { x, width, height } = event.nativeEvent.layout;
     setTabLayouts((prev) => ({ ...prev, [id]: { x, width, height } }));
+  };
+
+  const handleTabPress = (tab: TabItem) => {
+    if (tab.id !== activeTab) {
+      router.replace(tab.route as any);
+    }
   };
 
   const animatedIndicatorStyle = useAnimatedStyle(() => {
@@ -76,7 +90,7 @@ export const BottomNav: React.FC = () => {
               activeOpacity={0.7}
               onLayout={(e) => handleLayout(tab.id, e)}
               style={styles.tab}
-              onPress={() => setActiveTab(tab.id)}
+              onPress={() => handleTabPress(tab)}
             >
               <Feather
                 name={tab.icon}
