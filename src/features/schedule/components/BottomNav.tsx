@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   LayoutChangeEvent,
+  Linking,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -21,13 +22,20 @@ interface TabItem {
   id: TabId;
   label: string;
   icon: keyof typeof Feather.glyphMap;
-  route: "/" | "/bells" | "/links";
+  route?: "/" | "/bells";
+  downloadUrl?: string;
 }
 
 const TABS: TabItem[] = [
   { id: "pairs", label: "Пары", icon: "calendar", route: "/" },
   { id: "bells", label: "Звонки", icon: "clock", route: "/bells" },
-  { id: "links", label: "Ссылки", icon: "link", route: "/links" },
+  {
+    id: "links",
+    label: "Ссылки",
+    icon: "link",
+    downloadUrl:
+      "https://drive.google.com/drive/folders/1kUYiSAafghhYR0ARyXwPW1HZPpHcFIag",
+  },
 ];
 
 interface BottomNavProps {
@@ -47,19 +55,26 @@ export const BottomNav: React.FC<BottomNavProps> = ({
     setTabLayouts((prev) => ({ ...prev, [id]: { x, width, height } }));
   };
 
-  const handleTabPress = (tab: TabItem) => {
-    if (tab.id !== activeTab) {
-      router.replace(tab.route as any);
+  const handleTabPress = async (tab: TabItem) => {
+    if (tab.downloadUrl) {
+      const supported = await Linking.canOpenURL(tab.downloadUrl);
+      if (supported) {
+        await Linking.openURL(tab.downloadUrl);
+      }
+      return;
+    }
+
+    if (tab.route && tab.id !== activeTab) {
+      router.replace(tab.route as any, { animation: "none" } as any);
     }
   };
 
   const animatedIndicatorStyle = useAnimatedStyle(() => {
-    const currentLayout = tabLayouts[activeTab];
-
-    if (!currentLayout) {
-      return { opacity: 0 };
+    if (activeTab === "links" || !tabLayouts[activeTab]) {
+      return { opacity: withTiming(0, { duration: 150 }) };
     }
 
+    const currentLayout = tabLayouts[activeTab];
     const duration = 200;
     const easing = Easing.out(Easing.quad);
 
@@ -83,7 +98,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         />
 
         {TABS.map((tab) => {
-          const isActive = tab.id === activeTab;
+          const isActive = tab.id !== "links" && tab.id === activeTab;
+
           return (
             <TouchableOpacity
               key={tab.id}
