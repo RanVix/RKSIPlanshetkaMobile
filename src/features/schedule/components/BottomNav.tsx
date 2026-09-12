@@ -98,7 +98,7 @@ export const BottomNav: React.FC = () => {
 const styles = StyleSheet.create({
   wrapper: {
     position: "absolute",
-    bottom: 24,
+    bottom: 46,
     left: 0,
     right: 0,
     alignItems: "center",
