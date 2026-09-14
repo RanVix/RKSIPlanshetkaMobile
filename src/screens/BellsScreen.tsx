@@ -33,7 +33,7 @@ export const BellsScreen: React.FC = () => {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: 30 }]}>
       <View style={styles.headerPadding}>
         <Header groupName="Расписание звонков" />
       </View>
