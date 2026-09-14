@@ -1,7 +1,6 @@
 import { ScrollView, StyleSheet, View } from "react-native";
 
 import { COLORS } from "@/constants/theme";
-import { BottomNav } from "@/features/schedule/components/BottomNav";
 import { DaySelector } from "@/features/schedule/components/DaySelector";
 import { FilterBadges } from "@/features/schedule/components/FilterBadges";
 import { Header } from "@/features/schedule/components/Header";
@@ -27,8 +26,6 @@ export default function ScheduleScreen() {
           <LessonCard key={lesson.id} lesson={lesson} />
         ))}
       </ScrollView>
-
-      <BottomNav />
     </View>
   );
 }

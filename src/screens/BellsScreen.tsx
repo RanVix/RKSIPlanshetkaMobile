@@ -1,5 +1,4 @@
 import { COLORS } from "@/constants/theme";
-import { BottomNav } from "@/features/schedule/components/BottomNav";
 import { Header } from "@/features/schedule/components/Header";
 import React, { useRef, useState } from "react";
 import {
@@ -76,8 +75,6 @@ export const BellsScreen: React.FC = () => {
           ))}
         </View>
       </View>
-
-      <BottomNav activeTab="bells" />
     </View>
   );
 };

@@ -65,7 +65,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
     }
 
     if (tab.route && tab.id !== activeTab) {
-      router.replace(tab.route as any, { animation: "none" } as any);
+      router.navigate(tab.route as any);
     }
   };
 
