@@ -1,4 +1,4 @@
-import { COLORS } from "@/constants/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
@@ -16,19 +16,30 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   onClear,
   onClose,
 }) => {
+  const { colors } = useTheme();
+
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.cardBg,
+          borderColor: colors.cardBgBorder,
+          borderWidth: 1,
+        },
+      ]}
+    >
       <Feather
         name="search"
         size={18}
-        color="#8E8E93"
+        color={colors.textMuted}
         style={styles.searchIcon}
       />
 
       <TextInput
-        style={styles.input}
+        style={[styles.input, { color: colors.textPrimary }]}
         placeholder="Поиск"
-        placeholderTextColor="#8E8E93"
+        placeholderTextColor={colors.textMuted}
         value={value}
         onChangeText={onChangeText}
         autoCorrect={false}
@@ -40,7 +51,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
           style={styles.actionButton}
           activeOpacity={0.7}
         >
-          <Feather name="x" size={16} color="#8E8E93" />
+          <Feather name="x" size={16} color={colors.textMuted} />
         </TouchableOpacity>
       ) : onClose ? (
         <TouchableOpacity
@@ -48,7 +59,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
           style={styles.actionButton}
           activeOpacity={0.7}
         >
-          <Feather name="x" size={18} color="#8E8E93" />
+          <Feather name="x" size={18} color={colors.textMuted} />
         </TouchableOpacity>
       ) : null}
     </View>
@@ -59,18 +70,22 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#161B22",
     borderRadius: 24,
     paddingHorizontal: 16,
     height: 44,
     marginBottom: 20,
+
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   searchIcon: {
     marginRight: 10,
   },
   input: {
     flex: 1,
-    color: COLORS.textPrimary,
     fontSize: 15,
     paddingVertical: 0,
     includeFontPadding: false,

@@ -14,7 +14,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { COLORS } from "@/constants/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { SearchInput } from "../features/search/components/SearchInput";
 import { SearchSection } from "../features/search/components/SearchSection";
 import { MOCK_SEARCH_DATA, SearchItem } from "../features/search/types/search";
@@ -22,6 +22,7 @@ import { MOCK_SEARCH_DATA, SearchItem } from "../features/search/types/search";
 export const SearchScreen: React.FC = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [favoriteIds, setFavoriteIds] = useState<string[]>(["g1", "t1", "c1"]);
@@ -94,12 +95,20 @@ export const SearchScreen: React.FC = () => {
         <Animated.View
           style={[
             styles.container,
-            { paddingTop: Math.max(insets.top, 12) },
+            {
+              backgroundColor: colors.background,
+              paddingTop: Math.max(insets.top, 12),
+            },
             animatedStyle,
           ]}
         >
           <View style={styles.dragHandleContainer}>
-            <View style={styles.dragHandle} />
+            <View
+              style={[
+                styles.dragHandle,
+                { backgroundColor: colors.cardBgBorder },
+              ]}
+            />
           </View>
 
           <SearchInput
@@ -161,7 +170,6 @@ export const SearchScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 16,
@@ -176,7 +184,6 @@ const styles = StyleSheet.create({
   dragHandle: {
     width: 36,
     height: 5,
-    backgroundColor: "#30363D",
     borderRadius: 2.5,
   },
   scrollContent: {

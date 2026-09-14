@@ -1,4 +1,4 @@
-import { COLORS } from "@/constants/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { FontAwesome } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -17,16 +17,25 @@ export const SearchChip: React.FC<SearchChipProps> = ({
   onPress,
   onLongPress,
 }) => {
+  const { colors } = useTheme();
+
   return (
     <TouchableOpacity
-      style={styles.chip}
+      style={[
+        styles.chip,
+        {
+          backgroundColor: colors.cardBg,
+          borderColor: colors.cardBgBorder,
+          borderWidth: 1,
+        },
+      ]}
       activeOpacity={0.7}
       onPress={() => onPress(item)}
       onLongPress={() => onLongPress(item)}
       delayLongPress={300}
     >
       <Text
-        style={styles.label}
+        style={[styles.label, { color: colors.textPrimary }]}
         numberOfLines={1}
         adjustsFontSizeToFit
         minimumFontScale={0.85}
@@ -36,7 +45,7 @@ export const SearchChip: React.FC<SearchChipProps> = ({
 
       {isFavorite && (
         <View style={styles.favoriteBadge}>
-          <FontAwesome name="bookmark" size={10} color="#FFFFFF" />
+          <FontAwesome name="bookmark" size={10} color={colors.favorite} />
         </View>
       )}
     </TouchableOpacity>
@@ -46,7 +55,6 @@ export const SearchChip: React.FC<SearchChipProps> = ({
 const styles = StyleSheet.create({
   chip: {
     width: "48.5%",
-    backgroundColor: "#1C2128",
     borderRadius: 16,
     paddingVertical: 14,
     paddingHorizontal: 16,
@@ -54,9 +62,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
+
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   label: {
-    color: COLORS.textPrimary,
     fontSize: 14,
     fontWeight: "500",
     textAlign: "center",

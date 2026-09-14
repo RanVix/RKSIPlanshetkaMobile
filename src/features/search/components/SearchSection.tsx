@@ -1,3 +1,4 @@
+import { useTheme } from "@/context/ThemeContext";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -23,6 +24,8 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
   onItemPress,
   onItemLongPress,
 }) => {
+  const { colors } = useTheme();
+
   if (items.length === 0) return null;
 
   return (
@@ -32,15 +35,23 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
           <Feather
             name={iconName}
             size={18}
-            color="#FFFFFF"
+            color={colors.textPrimary}
             style={styles.headerIcon}
           />
-          <Text style={styles.title}>{title}</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>
+            {title}
+          </Text>
         </View>
-        {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+        {subtitle && (
+          <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+            {subtitle}
+          </Text>
+        )}
       </View>
 
-      <View style={styles.separator} />
+      <View
+        style={[styles.separator, { backgroundColor: colors.cardBgBorder }]}
+      />
 
       <View style={styles.grid}>
         {items.map((item) => (
@@ -72,18 +83,15 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   title: {
-    color: "#FFFFFF",
     fontSize: 17,
     fontWeight: "600",
   },
   subtitle: {
-    color: "#6E7681",
     fontSize: 12,
     marginTop: 4,
   },
   separator: {
     height: 1,
-    backgroundColor: "#21262D",
     marginBottom: 12,
   },
   grid: {

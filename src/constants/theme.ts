@@ -24,13 +24,13 @@ export const THEMES = {
     textDark: "#000000",
     textWhite: "#FFFFFF",
 
-    // Цвет цифры на обычной (не акцентной) плашке
     badgeTextColor: "#000000",
-    // Цвет иконок для тёмной темы
     iconColor: "#8B949E",
 
     badgeBg: "#161B22",
     badgeBorder: "#30363D",
+
+    favorite: "#FFFFFF",
   },
   light: {
     background: "#F6F8FA",
@@ -60,6 +60,8 @@ export const THEMES = {
 
     badgeBg: "#F3F4F6",
     badgeBorder: "#D0D7DE",
+
+    favorite: "#000000",
   },
 };
 
