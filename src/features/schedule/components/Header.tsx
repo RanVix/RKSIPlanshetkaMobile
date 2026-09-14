@@ -3,6 +3,12 @@ import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 
 interface HeaderProps {
   groupName: string;
@@ -18,7 +24,17 @@ export const Header: React.FC<HeaderProps> = ({
   const router = useRouter();
   const { theme, colors, toggleTheme } = useTheme();
 
+  const themeRotation = useSharedValue(0);
+  const themeScale = useSharedValue(1);
+
+  const searchScale = useSharedValue(1);
+
   const handleSearchPress = () => {
+    searchScale.value = withSequence(
+      withTiming(1.25, { duration: 120 }),
+      withTiming(1, { duration: 120 }),
+    );
+
     if (onSearchPress) {
       onSearchPress();
     } else {
@@ -27,6 +43,14 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   const handleThemePress = () => {
+    themeRotation.value = 0;
+    themeRotation.value = withTiming(360, { duration: 300 });
+
+    themeScale.value = withSequence(
+      withTiming(0.6, { duration: 150 }),
+      withTiming(1, { duration: 150 }),
+    );
+
     if (onThemePress) {
       onThemePress();
     } else {
@@ -34,19 +58,41 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
+  const animatedThemeIconStyle = useAnimatedStyle(() => ({
+    transform: [
+      { rotate: `${themeRotation.value}deg` },
+      { scale: themeScale.value },
+    ],
+  }));
+
+  const animatedSearchIconStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: searchScale.value }],
+  }));
+
   return (
     <View style={styles.container}>
       <Text style={[styles.title, { color: colors.textPrimary }]}>
         {groupName}
       </Text>
 
-      <View style={[styles.actions, { backgroundColor: colors.primary }]}>
+      <View
+        style={[
+          styles.actions,
+          {
+            backgroundColor: colors.primary,
+            borderColor: colors.cardBgBorder,
+            borderWidth: theme === "light" ? 1 : 0,
+          },
+        ]}
+      >
         <TouchableOpacity
           style={styles.iconButton}
           activeOpacity={0.7}
           onPress={handleSearchPress}
         >
-          <Feather name="search" size={18} color={colors.textPrimary} />
+          <Animated.View style={animatedSearchIconStyle}>
+            <Feather name="search" size={18} color={colors.textPrimary} />
+          </Animated.View>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -54,11 +100,13 @@ export const Header: React.FC<HeaderProps> = ({
           activeOpacity={0.7}
           onPress={handleThemePress}
         >
-          <Feather
-            name={theme === "dark" ? "sun" : "moon"}
-            size={18}
-            color={colors.textPrimary}
-          />
+          <Animated.View style={animatedThemeIconStyle}>
+            <Feather
+              name={theme === "dark" ? "sun" : "moon"}
+              size={18}
+              color={colors.textPrimary}
+            />
+          </Animated.View>
         </TouchableOpacity>
       </View>
     </View>
