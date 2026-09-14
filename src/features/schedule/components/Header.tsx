@@ -1,4 +1,4 @@
-import { COLORS } from "@/constants/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -16,6 +16,7 @@ export const Header: React.FC<HeaderProps> = ({
   onThemePress,
 }) => {
   const router = useRouter();
+  const { theme, colors, toggleTheme } = useTheme();
 
   const handleSearchPress = () => {
     if (onSearchPress) {
@@ -25,26 +26,39 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
+  const handleThemePress = () => {
+    if (onThemePress) {
+      onThemePress();
+    } else {
+      toggleTheme();
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{groupName}</Text>
+      <Text style={[styles.title, { color: colors.textPrimary }]}>
+        {groupName}
+      </Text>
 
-      {/* Единая плашка-капсула */}
-      <View style={styles.actions}>
+      <View style={[styles.actions, { backgroundColor: colors.primary }]}>
         <TouchableOpacity
           style={styles.iconButton}
           activeOpacity={0.7}
           onPress={handleSearchPress}
         >
-          <Feather name="search" size={18} color={COLORS.textPrimary} />
+          <Feather name="search" size={18} color={colors.textPrimary} />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.iconButton}
           activeOpacity={0.7}
-          onPress={onThemePress}
+          onPress={handleThemePress}
         >
-          <Feather name="sun" size={18} color={COLORS.textPrimary} />
+          <Feather
+            name={theme === "dark" ? "sun" : "moon"}
+            size={18}
+            color={colors.textPrimary}
+          />
         </TouchableOpacity>
       </View>
     </View>
@@ -61,12 +75,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 21,
     fontWeight: "500",
-    color: COLORS.textPrimary,
   },
   actions: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.primary,
     borderRadius: 24,
     paddingVertical: 4,
     paddingHorizontal: 8,

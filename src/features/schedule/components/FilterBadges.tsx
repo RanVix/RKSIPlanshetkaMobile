@@ -1,4 +1,4 @@
-import { COLORS } from "@/constants/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
@@ -14,6 +14,9 @@ interface FilterBadgesProps {
 }
 
 export const FilterBadges: React.FC<FilterBadgesProps> = ({ filters }) => {
+  const { colors, theme } = useTheme();
+  const isDark = theme === "dark";
+
   return (
     <ScrollView
       horizontal
@@ -23,9 +26,21 @@ export const FilterBadges: React.FC<FilterBadgesProps> = ({ filters }) => {
     >
       <View style={styles.container}>
         {filters.map((filter) => (
-          <View key={filter.id} style={styles.badge}>
-            <Feather name={filter.icon} size={16} color={"#AEAEB2"} />
-            <Text style={styles.text}>{filter.text}</Text>
+          <View
+            key={filter.id}
+            style={[
+              styles.badge,
+              {
+                backgroundColor: colors.badgeBg,
+                borderColor: isDark ? colors.badgeBorder : "transparent",
+                borderWidth: isDark ? 1 : 0,
+              },
+            ]}
+          >
+            <Feather name={filter.icon} size={16} color={colors.textFilter} />
+            <Text style={[styles.text, { color: colors.textFilter }]}>
+              {filter.text}
+            </Text>
           </View>
         ))}
       </View>
@@ -48,21 +63,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLORS.primary,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 12,
     gap: 6,
 
     shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
 
-    elevation: 4,
+    elevation: 2,
   },
   text: {
-    color: "#AEAEB2",
     fontSize: 12,
     lineHeight: 16,
     fontWeight: "400",

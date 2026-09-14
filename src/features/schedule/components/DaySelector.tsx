@@ -1,4 +1,4 @@
-import { COLORS } from "@/constants/theme";
+import { useTheme } from "@/context/ThemeContext";
 import React, { useState } from "react";
 import {
   LayoutChangeEvent,
@@ -19,6 +19,7 @@ interface DaySelectorProps {
 }
 
 export const DaySelector: React.FC<DaySelectorProps> = ({ days }) => {
+  const { colors } = useTheme();
   const [selectedId, setSelectedId] = useState(days[0]?.id);
   const [cardLayouts, setCardLayouts] = useState<
     Record<string, { x: number; width: number }>
@@ -52,10 +53,18 @@ export const DaySelector: React.FC<DaySelectorProps> = ({ days }) => {
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.activeIndicator, animatedIndicatorStyle]} />
+      <Animated.View
+        style={[
+          styles.activeIndicator,
+          { backgroundColor: colors.primary },
+          animatedIndicatorStyle,
+        ]}
+      />
 
       {days.map((item) => {
         const isSelected = item.id === selectedId;
+        const textColor = isSelected ? colors.textPrimary : colors.textMuted;
+
         return (
           <TouchableOpacity
             key={item.id}
@@ -64,12 +73,10 @@ export const DaySelector: React.FC<DaySelectorProps> = ({ days }) => {
             onPress={() => setSelectedId(item.id)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.dayOfWeek, isSelected && styles.activeText]}>
+            <Text style={[styles.dayOfWeek, { color: textColor }]}>
               {item.dayOfWeek}
             </Text>
-            <Text style={[styles.date, isSelected && styles.activeText]}>
-              {item.date}
-            </Text>
+            <Text style={[styles.date, { color: textColor }]}>{item.date}</Text>
           </TouchableOpacity>
         );
       })}
@@ -89,7 +96,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     bottom: 0,
-    backgroundColor: COLORS.primary,
     borderRadius: 12,
   },
   dayCard: {
@@ -103,15 +109,10 @@ const styles = StyleSheet.create({
   dayOfWeek: {
     fontSize: 13,
     fontWeight: "500",
-    color: COLORS.textMuted,
   },
   date: {
     fontSize: 13,
     fontWeight: "600",
-    color: COLORS.textMuted,
     marginTop: 2,
-  },
-  activeText: {
-    color: COLORS.textPrimary,
   },
 });

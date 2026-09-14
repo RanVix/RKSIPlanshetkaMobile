@@ -1,30 +1,46 @@
 import { COLORS } from "@/constants/theme";
+import { useTheme } from "@/context/ThemeContext";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Lesson } from "../types/schedule";
 
 import CabinetIcon from "@/assets/svgs/CabinetIcon.svg";
+import CabinetIconBlack from "@/assets/svgs/CabinetIconBlack.svg";
 import CombinedIcon from "@/assets/svgs/CombinedIcon.svg";
+import CombinedIconBlack from "@/assets/svgs/CombinedIconBlack.svg";
 import UserIcon from "@/assets/svgs/UserIcon.svg";
+import UserIconBlack from "@/assets/svgs/UserIconBlack.svg";
 
 interface LessonCardProps {
   lesson: Lesson;
 }
 
 export const LessonCard: React.FC<LessonCardProps> = ({ lesson }) => {
+  const { colors, theme } = useTheme();
+  const isDark = theme === "dark";
   const isAccentBadge = lesson.number === 6;
 
+  const SelectedUserIcon = isDark ? UserIcon : UserIconBlack;
+  const SelectedCabinetIcon = isDark ? CabinetIcon : CabinetIconBlack;
+  const SelectedCombinedIcon = isDark ? CombinedIcon : CombinedIconBlack;
+
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: colors.cardBg }]}>
       <View style={styles.timeBlock}>
-        <Text style={styles.startTime}>{lesson.startTime}</Text>
-        <Text style={styles.endTime}>{lesson.endTime}</Text>
+        <Text style={[styles.startTime, { color: colors.textPrimary }]}>
+          {lesson.startTime}
+        </Text>
+        <Text style={[styles.endTime, { color: colors.textSecondary }]}>
+          {lesson.endTime}
+        </Text>
       </View>
 
       <View style={styles.contentBlock}>
         <View style={styles.headerContainer}>
           <View style={styles.headerRow}>
-            <Text style={styles.subjectTitle}>{lesson.subject}</Text>
+            <Text style={[styles.subjectTitle, { color: colors.textPrimary }]}>
+              {lesson.subject}
+            </Text>
             {lesson.hasIndicator && <View style={styles.redDot} />}
           </View>
           <View style={styles.titleDivider} />
@@ -39,9 +55,13 @@ export const LessonCard: React.FC<LessonCardProps> = ({ lesson }) => {
               {teacher.name && (
                 <View style={styles.infoRow}>
                   <View style={styles.iconContainer}>
-                    <UserIcon width={15} height={15} color="#E1E4E8" />
+                    <SelectedUserIcon width={15} height={15} />
                   </View>
-                  <Text style={styles.infoText}>{teacher.name}</Text>
+                  <Text
+                    style={[styles.infoText, { color: colors.textPrimary }]}
+                  >
+                    {teacher.name}
+                  </Text>
                 </View>
               )}
 
@@ -49,9 +69,13 @@ export const LessonCard: React.FC<LessonCardProps> = ({ lesson }) => {
               {teacher.room && (
                 <View style={styles.infoRow}>
                   <View style={styles.iconContainer}>
-                    <CabinetIcon width={15} height={15} color="#E1E4E8" />
+                    <SelectedCabinetIcon width={15} height={15} />
                   </View>
-                  <Text style={styles.infoText}>{teacher.room}</Text>
+                  <Text
+                    style={[styles.infoText, { color: colors.textPrimary }]}
+                  >
+                    {teacher.room}
+                  </Text>
                 </View>
               )}
 
@@ -59,9 +83,13 @@ export const LessonCard: React.FC<LessonCardProps> = ({ lesson }) => {
               {teacher.group && (
                 <View style={styles.infoRow}>
                   <View style={styles.iconContainer}>
-                    <CombinedIcon width={15} height={15} color="#E1E4E8" />
+                    <SelectedCombinedIcon width={15} height={15} />
                   </View>
-                  <Text style={styles.infoText}>{teacher.group}</Text>
+                  <Text
+                    style={[styles.infoText, { color: colors.textPrimary }]}
+                  >
+                    {teacher.group}
+                  </Text>
                 </View>
               )}
             </View>
@@ -72,13 +100,19 @@ export const LessonCard: React.FC<LessonCardProps> = ({ lesson }) => {
       <View
         style={[
           styles.badge,
-          isAccentBadge ? styles.badgeBlue : styles.badgeWhite,
+          {
+            backgroundColor: isAccentBadge
+              ? colors.accentBlue
+              : colors.LessonCardBackground,
+          },
         ]}
       >
         <Text
           style={[
             styles.badgeText,
-            isAccentBadge ? styles.textWhite : styles.textDark,
+            {
+              color: isAccentBadge ? colors.textWhite : colors.badgeTextColor,
+            },
           ]}
         >
           {lesson.number}
@@ -105,12 +139,12 @@ const styles = StyleSheet.create({
   startTime: {
     fontSize: 21,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: COLORS.textWhite,
     letterSpacing: -0.5,
   },
   endTime: {
     fontSize: 18,
-    color: "#8B949E",
+    color: COLORS.textSecondary,
     marginTop: 2,
   },
   contentBlock: {
@@ -128,18 +162,18 @@ const styles = StyleSheet.create({
   subjectTitle: {
     fontSize: 18,
     fontWeight: "500",
-    color: "#FFFFFF",
+    color: COLORS.white,
   },
   redDot: {
     width: 5,
     height: 5,
     borderRadius: 3,
-    backgroundColor: "#FF7878",
+    backgroundColor: COLORS.redDot,
     marginLeft: 6,
   },
   titleDivider: {
     height: 1,
-    backgroundColor: "#3D4A5D",
+    backgroundColor: COLORS.Card,
     width: "70%",
   },
   teachersList: {
@@ -150,7 +184,7 @@ const styles = StyleSheet.create({
   },
   teacherDivider: {
     height: 1,
-    backgroundColor: "#3D4A5D",
+    backgroundColor: COLORS.Card,
     marginVertical: 4,
     width: "70%",
   },
@@ -166,7 +200,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 15,
-    color: "#FFFFFF",
+    color: COLORS.infoText,
   },
 
   badge: {
@@ -179,20 +213,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  badgeWhite: {
-    backgroundColor: "#FFFFFF",
-  },
-  badgeBlue: {
-    backgroundColor: "#2F80ED",
-  },
   badgeText: {
     fontSize: 18,
     fontWeight: "700",
-  },
-  textDark: {
-    color: "#000000",
-  },
-  textWhite: {
-    color: "#FFFFFF",
   },
 });

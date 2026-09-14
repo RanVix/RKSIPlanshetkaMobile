@@ -1,4 +1,4 @@
-import { COLORS } from "@/constants/theme";
+import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { BottomNav, TabId } from "@/features/schedule/components/BottomNav";
 import { NavigationBar } from "expo-navigation-bar";
 import { Stack, usePathname } from "expo-router";
@@ -7,14 +7,15 @@ import { useEffect } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-export default function RootLayout() {
+function MainLayout() {
   const pathname = usePathname();
+  const { theme, colors } = useTheme();
 
   useEffect(() => {
     if (Platform.OS === "android") {
-      NavigationBar.setStyle("light");
+      NavigationBar.setStyle(theme === "dark" ? "light" : "dark");
     }
-  }, []);
+  }, [theme]);
 
   const getActiveTab = (): TabId => {
     if (pathname === "/bells") return "bells";
@@ -24,46 +25,56 @@ export default function RootLayout() {
   const isSearchScreen = pathname === "/search";
 
   return (
-    <SafeAreaProvider>
-      <View style={styles.container}>
-        <StatusBar style="light" hidden={true} />
-        <NavigationBar style="light" />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar style={theme === "dark" ? "light" : "dark"} hidden={true} />
 
-        <Stack
-          initialRouteName="index"
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: COLORS.background },
+      <Stack
+        initialRouteName="index"
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.background },
+        }}
+      >
+        <Stack.Screen
+          name="index"
+          options={{
+            animation: "slide_from_left",
+            animationDuration: 180,
           }}
-        >
-          <Stack.Screen
-            name="index"
-            options={{
-              animation: "slide_from_left",
-            }}
-          />
+        />
 
-          <Stack.Screen
-            name="bells"
-            options={{
-              animation: "slide_from_right",
-            }}
-          />
+        <Stack.Screen
+          name="bells"
+          options={{
+            animation: "slide_from_right",
+            animationDuration: 180,
+          }}
+        />
 
-          <Stack.Screen
-            name="search"
-            options={{
-              presentation: "transparentModal",
-              animation: "slide_from_bottom",
-              contentStyle: { backgroundColor: "transparent" },
-              gestureEnabled: true,
-              gestureDirection: "vertical",
-            }}
-          />
-        </Stack>
+        <Stack.Screen
+          name="search"
+          options={{
+            presentation: "transparentModal",
+            animation: "slide_from_bottom",
+            animationDuration: 200,
+            contentStyle: { backgroundColor: "transparent" },
+            gestureEnabled: true,
+            gestureDirection: "vertical",
+          }}
+        />
+      </Stack>
 
-        {!isSearchScreen && <BottomNav activeTab={getActiveTab()} />}
-      </View>
+      {!isSearchScreen && <BottomNav activeTab={getActiveTab()} />}
+    </View>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <MainLayout />
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }
@@ -71,6 +82,5 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
 });

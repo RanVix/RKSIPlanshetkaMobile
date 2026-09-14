@@ -1,4 +1,4 @@
-import { COLORS } from "@/constants/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -46,6 +46,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   activeTab = "pairs",
 }) => {
   const router = useRouter();
+  const { colors } = useTheme();
   const [tabLayouts, setTabLayouts] = useState<
     Record<string, { x: number; width: number; height: number }>
   >({});
@@ -92,9 +93,21 @@ export const BottomNav: React.FC<BottomNavProps> = ({
 
   return (
     <View style={styles.wrapper}>
-      <View style={styles.container}>
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.primary,
+            shadowColor: colors.textDark,
+          },
+        ]}
+      >
         <Animated.View
-          style={[styles.activeIndicator, animatedIndicatorStyle]}
+          style={[
+            styles.activeIndicator,
+            animatedIndicatorStyle,
+            { backgroundColor: colors.primaryActive },
+          ]}
         />
 
         {TABS.map((tab) => {
@@ -111,10 +124,18 @@ export const BottomNav: React.FC<BottomNavProps> = ({
               <Feather
                 name={tab.icon}
                 size={18}
-                color={isActive ? "#FFFFFF" : COLORS.textMuted}
+                color={isActive ? colors.textPrimary : colors.textSecondary}
                 style={styles.icon}
               />
-              <Text style={[styles.label, isActive && styles.activeLabel]}>
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    color: isActive ? colors.textPrimary : colors.textSecondary,
+                  },
+                  isActive && styles.activeLabel,
+                ]}
+              >
                 {tab.label}
               </Text>
             </TouchableOpacity>
@@ -135,14 +156,12 @@ const styles = StyleSheet.create({
   },
   container: {
     flexDirection: "row",
-    backgroundColor: "#161B22",
     borderRadius: 40,
     padding: 6,
     position: "relative",
 
-    shadowColor: "#000000",
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.15,
     shadowRadius: 10,
     elevation: 8,
   },
@@ -150,7 +169,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 6,
     left: 0,
-    backgroundColor: "#353D4A",
     borderRadius: 28,
   },
   tab: {
@@ -167,12 +185,10 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   label: {
-    color: "#8B949E",
     fontSize: 12,
     fontWeight: "400",
   },
   activeLabel: {
-    color: "#FFFFFF",
-    fontWeight: "500",
+    fontWeight: "600",
   },
 });

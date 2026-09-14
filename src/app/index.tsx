@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet, View } from "react-native";
 
-import { COLORS } from "@/constants/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { DaySelector } from "@/features/schedule/components/DaySelector";
 import { FilterBadges } from "@/features/schedule/components/FilterBadges";
 import { Header } from "@/features/schedule/components/Header";
@@ -12,8 +12,10 @@ import {
 } from "@/features/schedule/mock/mockSchedule";
 
 export default function ScheduleScreen() {
+  const { colors } = useTheme();
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -33,7 +35,6 @@ export default function ScheduleScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   scrollContent: {
     paddingHorizontal: 16,
