@@ -1,3 +1,4 @@
+import { useTheme } from "@/context/ThemeContext";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { BellItem } from "../types/bells";
@@ -7,12 +8,34 @@ interface BellRowProps {
 }
 
 export const BellRow: React.FC<BellRowProps> = ({ item }) => {
+  const { colors, theme } = useTheme();
+  const isDark = theme === "dark";
+
   return (
     <View style={styles.row}>
-      <View style={styles.numberBadge}>
-        <Text style={styles.numberText}>{item.number}</Text>
+      {/* На светлой теме кружок черный (#000000) с белым текстом (#FFFFFF) */}
+      <View
+        style={[
+          styles.numberBadge,
+          {
+            backgroundColor: isDark ? colors.LessonCardBackground : "#000000",
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.numberText,
+            { color: isDark ? colors.badgeTextColor : "#FFFFFF" },
+          ]}
+        >
+          {item.number}
+        </Text>
       </View>
-      <Text style={styles.timeText}>{item.time}</Text>
+
+      {/* Текст со временем пар: черный на светлой теме, из темы на темной */}
+      <Text style={[styles.timeText, { color: colors.textPrimary }]}>
+        {item.time}
+      </Text>
     </View>
   );
 };
@@ -27,19 +50,16 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 16,
-    backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
   },
   numberText: {
-    color: "#0D1117",
     fontSize: 20,
     fontWeight: "700",
   },
   timeText: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#FFFFFF",
     letterSpacing: 0.5,
   },
 });

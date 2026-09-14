@@ -1,4 +1,4 @@
-import { COLORS } from "@/constants/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { Header } from "@/features/schedule/components/Header";
 import React, { useRef, useState } from "react";
 import {
@@ -20,6 +20,7 @@ const CARD_GAP = 12;
 const ITEM_SIZE = CARD_WIDTH + CARD_GAP;
 
 export const BellsScreen: React.FC = () => {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [activeIndex, setActiveIndex] = useState(1);
   const flatListRef = useRef<FlatList<BellScheduleType>>(null);
@@ -33,7 +34,12 @@ export const BellsScreen: React.FC = () => {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: 30 }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.background, paddingTop: 30 },
+      ]}
+    >
       <View style={styles.headerPadding}>
         <Header groupName="Расписание звонков" />
       </View>
@@ -70,7 +76,14 @@ export const BellsScreen: React.FC = () => {
           {BELL_SCHEDULES.map((_, idx) => (
             <View
               key={idx}
-              style={[styles.dot, activeIndex === idx && styles.activeDot]}
+              style={[
+                styles.dot,
+                { backgroundColor: colors.cardBgBorder },
+                activeIndex === idx && [
+                  styles.activeDot,
+                  { backgroundColor: colors.accentBlue },
+                ],
+              ]}
             />
           ))}
         </View>
@@ -82,7 +95,6 @@ export const BellsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   headerPadding: {
     paddingHorizontal: 16,
@@ -107,10 +119,8 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#30363D",
   },
   activeDot: {
-    backgroundColor: "#58A6FF",
     width: 20,
   },
 });
