@@ -1,6 +1,15 @@
+import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import React, { useCallback, useDeferredValue, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import {
   Gesture,
   GestureDetector,
@@ -15,23 +24,43 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTheme } from "@/context/ThemeContext";
+import { useSearchData } from "@/hooks/useSearchData";
 import { SearchInput } from "../features/search/components/SearchInput";
 import { SearchSection } from "../features/search/components/SearchSection";
-import { MOCK_SEARCH_DATA, SearchItem } from "../features/search/types/search";
+import { SearchItem } from "../features/search/types/search";
+
+interface SectionData {
+  id: string;
+  title: string;
+  subtitle?: string;
+  iconName: keyof typeof Feather.glyphMap;
+  items: SearchItem[];
+}
 
 export const SearchScreen: React.FC = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
 
+  const {
+    groups: apiGroups = [],
+    teachers: apiTeachers = [],
+    audiences: apiAudiences = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useSearchData();
+
   const [searchQuery, setSearchQuery] = useState("");
-  const [favoriteIds, setFavoriteIds] = useState<string[]>(["g1", "t1", "c1"]);
+  const deferredQuery = useDeferredValue(searchQuery);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
 
   const translateY = useSharedValue(0);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     router.back();
-  };
+  }, [router]);
 
   const panGesture = Gesture.Pan()
     .onChange((event) => {
@@ -51,46 +80,111 @@ export const SearchScreen: React.FC = () => {
     transform: [{ translateY: translateY.value }],
   }));
 
-  const handleToggleFavorite = (item: SearchItem) => {
-    const isFav = favoriteIds.includes(item.id);
-    if (isFav) {
-      setFavoriteIds((prev) => prev.filter((id) => id !== item.id));
-    } else {
-      setFavoriteIds((prev) => [...prev, item.id]);
-    }
-  };
-
-  const handleItemPress = (_item: SearchItem) => {
-    // Выбор элементов
-  };
-
-  const filteredData = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return MOCK_SEARCH_DATA;
-    return MOCK_SEARCH_DATA.filter((item) =>
-      item.name.toLowerCase().includes(q),
+  const handleToggleFavorite = useCallback((item: SearchItem) => {
+    setFavoriteIds((prev) =>
+      prev.includes(item.id)
+        ? prev.filter((id) => id !== item.id)
+        : [...prev, item.id],
     );
-  }, [searchQuery]);
+  }, []);
 
-  const favorites = useMemo(
-    () => MOCK_SEARCH_DATA.filter((item) => favoriteIds.includes(item.id)),
-    [favoriteIds],
-  );
+  const handleItemPress = useCallback((_item: SearchItem) => {
+    // Выбор элемента и переход
+  }, []);
+
+  const q = deferredQuery.trim().toLowerCase();
+
   const groups = useMemo(
-    () => filteredData.filter((item) => item.category === "groups"),
-    [filteredData],
+    () =>
+      q
+        ? apiGroups.filter((item) => item.name.toLowerCase().includes(q))
+        : apiGroups,
+    [apiGroups, q],
   );
+
   const teachers = useMemo(
-    () => filteredData.filter((item) => item.category === "teachers"),
-    [filteredData],
+    () =>
+      q
+        ? apiTeachers.filter((item) => item.name.toLowerCase().includes(q))
+        : apiTeachers,
+    [apiTeachers, q],
   );
-  const cabinets = useMemo(
-    () => filteredData.filter((item) => item.category === "cabinets"),
-    [filteredData],
+
+  const audiences = useMemo(
+    () =>
+      q
+        ? apiAudiences.filter((item) => item.name.toLowerCase().includes(q))
+        : apiAudiences,
+    [apiAudiences, q],
+  );
+
+  const favorites = useMemo(() => {
+    if (favoriteIds.length === 0) return [];
+    const all = [...apiGroups, ...apiTeachers, ...apiAudiences];
+    return all.filter((item) => favoriteIds.includes(item.id));
+  }, [apiGroups, apiTeachers, apiAudiences, favoriteIds]);
+
+  const hasData =
+    apiGroups.length > 0 || apiTeachers.length > 0 || apiAudiences.length > 0;
+
+  const sectionsData = useMemo(() => {
+    const sections: SectionData[] = [];
+
+    if (!q && favorites.length > 0) {
+      sections.push({
+        id: "favorites",
+        title: "Избранное",
+        subtitle: "Зажмите, чтобы добавить в избранное",
+        iconName: "bookmark",
+        items: favorites,
+      });
+    }
+
+    if (groups.length > 0) {
+      sections.push({
+        id: "groups",
+        title: "Группы",
+        iconName: "users",
+        items: groups,
+      });
+    }
+    if (teachers.length > 0) {
+      sections.push({
+        id: "teachers",
+        title: "Преподаватели",
+        iconName: "user",
+        items: teachers,
+      });
+    }
+    if (audiences.length > 0) {
+      sections.push({
+        id: "audiences",
+        title: "Аудитории",
+        iconName: "sidebar",
+        items: audiences,
+      });
+    }
+
+    return sections;
+  }, [q, favorites, groups, teachers, audiences]);
+
+  const renderSectionItem = useCallback(
+    ({ item }: { item: SectionData }) => (
+      <SearchSection
+        title={item.title}
+        subtitle={item.subtitle}
+        iconName={item.iconName}
+        items={item.items}
+        favoriteIds={favoriteIds}
+        onItemPress={handleItemPress}
+        onItemLongPress={handleToggleFavorite}
+      />
+    ),
+    [favoriteIds, handleItemPress, handleToggleFavorite],
   );
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={styles.flexOne}>
       <GestureDetector gesture={panGesture}>
         <Animated.View
           style={[
@@ -118,49 +212,51 @@ export const SearchScreen: React.FC = () => {
             onClose={handleClose}
           />
 
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-          >
-            {!searchQuery && favorites.length > 0 && (
-              <SearchSection
-                title="Избранное"
-                subtitle="Зажмите, чтобы добавить в избранное"
-                iconName="bookmark"
-                items={favorites}
-                favoriteIds={favoriteIds}
-                onItemPress={handleItemPress}
-                onItemLongPress={handleToggleFavorite}
-              />
-            )}
+          {isLoading && !hasData && (
+            <View style={styles.centerContainer}>
+              <ActivityIndicator size="large" color={colors.textPrimary} />
+              <Text style={[styles.statusText, { color: colors.textMuted }]}>
+                Загрузка данных...
+              </Text>
+            </View>
+          )}
 
-            <SearchSection
-              title="Группы"
-              iconName="users"
-              items={groups}
-              favoriteIds={favoriteIds}
-              onItemPress={handleItemPress}
-              onItemLongPress={handleToggleFavorite}
-            />
+          {isError && !hasData && (
+            <View style={styles.centerContainer}>
+              <Text style={[styles.errorText, { color: colors.textPrimary }]}>
+                {error?.message || "Не удалось загрузить данные"}
+              </Text>
+              <TouchableOpacity
+                style={[styles.retryButton, { backgroundColor: colors.cardBg }]}
+                onPress={refetch}
+              >
+                <Text style={{ color: colors.textPrimary, fontWeight: "600" }}>
+                  Повторить попытку
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
-            <SearchSection
-              title="Преподаватели"
-              iconName="user"
-              items={teachers}
-              favoriteIds={favoriteIds}
-              onItemPress={handleItemPress}
-              onItemLongPress={handleToggleFavorite}
+          {(hasData || (!isLoading && !isError)) && (
+            <FlatList
+              data={sectionsData}
+              keyExtractor={(item) => item.id}
+              renderItem={renderSectionItem}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+              initialNumToRender={1}
+              maxToRenderPerBatch={2}
+              windowSize={3}
+              removeClippedSubviews={true}
+              refreshControl={
+                <RefreshControl
+                  refreshing={isLoading}
+                  onRefresh={refetch}
+                  tintColor={colors.textPrimary}
+                />
+              }
             />
-
-            <SearchSection
-              title="Кабинеты"
-              iconName="sidebar"
-              items={cabinets}
-              favoriteIds={favoriteIds}
-              onItemPress={handleItemPress}
-              onItemLongPress={handleToggleFavorite}
-            />
-          </ScrollView>
+          )}
         </Animated.View>
       </GestureDetector>
     </GestureHandlerRootView>
@@ -168,6 +264,9 @@ export const SearchScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  flexOne: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     borderTopLeftRadius: 20,
@@ -188,5 +287,25 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 40,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  statusText: {
+    marginTop: 12,
+    fontSize: 14,
+  },
+  errorText: {
+    fontSize: 15,
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  retryButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
   },
 });

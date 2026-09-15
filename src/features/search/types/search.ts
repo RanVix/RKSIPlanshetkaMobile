@@ -1,4 +1,4 @@
-export type SearchCategory = "groups" | "teachers" | "cabinets";
+export type SearchCategory = "groups" | "teachers" | "audiences";
 
 export interface SearchItem {
   id: string;
@@ -6,19 +6,11 @@ export interface SearchItem {
   category: SearchCategory;
 }
 
+export type SearchApiRawResponse = string[];
+
 export const MOCK_SEARCH_DATA: SearchItem[] = [
-  { id: "g1", name: "ИС-21", category: "groups" },
-  { id: "g2", name: "ИС-22", category: "groups" },
-  { id: "g3", name: "ИС-23", category: "groups" },
-  { id: "g4", name: "ИС-24", category: "groups" },
-
-  { id: "t1", name: "Преподаватель1 А.Б.", category: "teachers" },
-  { id: "t2", name: "Преподаватель2 А.Б.", category: "teachers" },
-  { id: "t3", name: "Преподаватель3 А.Б.", category: "teachers" },
-  { id: "t4", name: "Преподаватель4 А.Б.", category: "teachers" },
-
-  { id: "c1", name: "123", category: "cabinets" },
-  { id: "c2", name: "124", category: "cabinets" },
-  { id: "c3", name: "125", category: "cabinets" },
-  { id: "c4", name: "126", category: "cabinets" },
+  { id: "g_ИС-21", name: "ИС-21", category: "groups" },
+  { id: "g_ИС-22", name: "ИС-22", category: "groups" },
+  { id: "t_Преподаватель1", name: "Преподаватель1 А.Б.", category: "teachers" },
+  { id: "a_123", name: "123", category: "audiences" },
 ];

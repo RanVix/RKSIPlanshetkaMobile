@@ -1,9 +1,11 @@
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { BottomNav, TabId } from "@/features/schedule/components/BottomNav";
+import { prefetchSearchData } from "@/hooks/useSearchData"; // Импортируем функцию предзагрузки
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NavigationBar } from "expo-navigation-bar";
 import { Stack, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Platform, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -86,11 +88,30 @@ function MainLayout() {
 }
 
 export default function RootLayout() {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            retry: 2,
+            staleTime: 1000 * 60 * 60,
+            refetchOnWindowFocus: false,
+          },
+        },
+      }),
+  );
+
+  useEffect(() => {
+    prefetchSearchData(queryClient);
+  }, [queryClient]);
+
   return (
     <SafeAreaProvider>
-      <ThemeProvider>
-        <MainLayout />
-      </ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <MainLayout />
+        </ThemeProvider>
+      </QueryClientProvider>
     </SafeAreaProvider>
   );
 }
