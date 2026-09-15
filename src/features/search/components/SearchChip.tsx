@@ -25,8 +25,6 @@ export const SearchChip: React.FC<SearchChipProps> = ({
         styles.chip,
         {
           backgroundColor: colors.cardBg,
-          borderColor: colors.cardBgBorder,
-          borderWidth: 1,
         },
       ]}
       activeOpacity={0.7}

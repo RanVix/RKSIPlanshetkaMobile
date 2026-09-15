@@ -51,6 +51,7 @@ export const FilterBadges: React.FC<FilterBadgesProps> = ({ filters }) => {
 const styles = StyleSheet.create({
   scroll: {
     marginBottom: 16,
+    overflow: "visible",
   },
   scrollContent: {
     paddingVertical: 6,
@@ -64,7 +65,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderRadius: 12,
     gap: 6,
 

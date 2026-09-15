@@ -4,8 +4,24 @@ import { NavigationBar } from "expo-navigation-bar";
 import { Stack, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+
+const fixFontScale = () => {
+  if ((Text as any).defaultProps == null) {
+    (Text as any).defaultProps = {};
+  }
+  (Text as any).defaultProps.maxFontSizeMultiplier = 1;
+  (Text as any).defaultProps.allowFontScaling = false;
+
+  if ((TextInput as any).defaultProps == null) {
+    (TextInput as any).defaultProps = {};
+  }
+  (TextInput as any).defaultProps.maxFontSizeMultiplier = 1;
+  (TextInput as any).defaultProps.allowFontScaling = false;
+};
+
+fixFontScale();
 
 function MainLayout() {
   const pathname = usePathname();

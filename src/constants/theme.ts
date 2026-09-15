@@ -27,7 +27,7 @@ export const THEMES = {
     badgeTextColor: "#000000",
     iconColor: "#8B949E",
 
-    badgeBg: "#161B22",
+    badgeBg: "#1C2027",
     badgeBorder: "#30363D",
 
     favorite: "#FFFFFF",
