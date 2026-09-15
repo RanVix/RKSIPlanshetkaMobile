@@ -34,7 +34,7 @@ export const THEMES = {
   },
   light: {
     background: "#F6F8FA",
-    cardBg: "#FFFFFF",
+    cardBg: "#F2F2F7",
     cardBgBorder: "#D0D7DE",
 
     primary: "#F2F2F7",

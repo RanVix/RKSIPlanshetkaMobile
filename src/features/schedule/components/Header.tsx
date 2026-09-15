@@ -80,8 +80,6 @@ export const Header: React.FC<HeaderProps> = ({
           styles.actions,
           {
             backgroundColor: colors.primary,
-            borderColor: colors.cardBgBorder,
-            borderWidth: theme === "light" ? 1 : 0,
           },
         ]}
       >

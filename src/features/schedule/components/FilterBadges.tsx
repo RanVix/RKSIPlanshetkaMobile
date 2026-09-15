@@ -69,11 +69,11 @@ const styles = StyleSheet.create({
     gap: 6,
 
     shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
 
-    elevation: 2,
+    elevation: 5,
   },
   text: {
     fontSize: 12,
