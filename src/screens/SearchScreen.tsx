@@ -4,7 +4,6 @@ import React, { useCallback, useDeferredValue, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -62,14 +61,15 @@ export const SearchScreen: React.FC = () => {
     router.back();
   }, [router]);
 
-  const panGesture = Gesture.Pan()
+  // Единственный жест закрытия — только для верхней шапки
+  const headerPanGesture = Gesture.Pan()
     .onChange((event) => {
       if (event.translationY > 0) {
         translateY.value = event.translationY;
       }
     })
     .onEnd((event) => {
-      if (event.translationY > 120 || event.velocityY > 500) {
+      if (event.translationY > 100 || event.velocityY > 500) {
         runOnJS(handleClose)();
       } else {
         translateY.value = withSpring(0);
@@ -77,7 +77,7 @@ export const SearchScreen: React.FC = () => {
     });
 
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
+    transform: [{ translateY: Math.max(0, translateY.value) }],
   }));
 
   const handleToggleFavorite = useCallback((item: SearchItem) => {
@@ -89,7 +89,7 @@ export const SearchScreen: React.FC = () => {
   }, []);
 
   const handleItemPress = useCallback((_item: SearchItem) => {
-    // Выбор элемента и переход
+    // Выбор элемента
   }, []);
 
   const q = deferredQuery.trim().toLowerCase();
@@ -185,80 +185,77 @@ export const SearchScreen: React.FC = () => {
 
   return (
     <GestureHandlerRootView style={styles.flexOne}>
-      <GestureDetector gesture={panGesture}>
-        <Animated.View
-          style={[
-            styles.container,
-            {
-              backgroundColor: colors.background,
-              paddingTop: Math.max(insets.top, 12),
-            },
-            animatedStyle,
-          ]}
-        >
-          <View style={styles.dragHandleContainer}>
-            <View
-              style={[
-                styles.dragHandle,
-                { backgroundColor: colors.cardBgBorder },
-              ]}
+      <Animated.View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.background,
+            paddingTop: Math.max(insets.top, 12),
+          },
+          animatedStyle,
+        ]}
+      >
+        {/* Интерактивная шапка: свайп за этот блок закрывает модальное окно */}
+        <GestureDetector gesture={headerPanGesture}>
+          <View style={styles.headerTouchArea}>
+            <View style={styles.dragHandleContainer}>
+              <View
+                style={[
+                  styles.dragHandle,
+                  { backgroundColor: colors.cardBgBorder },
+                ]}
+              />
+            </View>
+
+            <SearchInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onClear={() => setSearchQuery("")}
+              onClose={handleClose}
             />
           </View>
+        </GestureDetector>
 
-          <SearchInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onClear={() => setSearchQuery("")}
-            onClose={handleClose}
+        {isLoading && !hasData && (
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color={colors.textPrimary} />
+            <Text style={[styles.statusText, { color: colors.textMuted }]}>
+              Загрузка данных...
+            </Text>
+          </View>
+        )}
+
+        {isError && !hasData && (
+          <View style={styles.centerContainer}>
+            <Text style={[styles.errorText, { color: colors.textPrimary }]}>
+              {error?.message || "Не удалось загрузить данные"}
+            </Text>
+            <TouchableOpacity
+              style={[styles.retryButton, { backgroundColor: colors.cardBg }]}
+              onPress={refetch}
+            >
+              <Text style={{ color: colors.textPrimary, fontWeight: "600" }}>
+                Повторить попытку
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {(hasData || (!isLoading && !isError)) && (
+          <FlatList
+            data={sectionsData}
+            keyExtractor={(item) => item.id}
+            renderItem={renderSectionItem}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            initialNumToRender={2}
+            maxToRenderPerBatch={4}
+            windowSize={5}
+            removeClippedSubviews={true}
+            // Убрали RefreshControl — свайп вверх/вниз по списку больше не отправляет повторных запросов
           />
-
-          {isLoading && !hasData && (
-            <View style={styles.centerContainer}>
-              <ActivityIndicator size="large" color={colors.textPrimary} />
-              <Text style={[styles.statusText, { color: colors.textMuted }]}>
-                Загрузка данных...
-              </Text>
-            </View>
-          )}
-
-          {isError && !hasData && (
-            <View style={styles.centerContainer}>
-              <Text style={[styles.errorText, { color: colors.textPrimary }]}>
-                {error?.message || "Не удалось загрузить данные"}
-              </Text>
-              <TouchableOpacity
-                style={[styles.retryButton, { backgroundColor: colors.cardBg }]}
-                onPress={refetch}
-              >
-                <Text style={{ color: colors.textPrimary, fontWeight: "600" }}>
-                  Повторить попытку
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {(hasData || (!isLoading && !isError)) && (
-            <FlatList
-              data={sectionsData}
-              keyExtractor={(item) => item.id}
-              renderItem={renderSectionItem}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContent}
-              initialNumToRender={1}
-              maxToRenderPerBatch={2}
-              windowSize={3}
-              removeClippedSubviews={true}
-              refreshControl={
-                <RefreshControl
-                  refreshing={isLoading}
-                  onRefresh={refetch}
-                  tintColor={colors.textPrimary}
-                />
-              }
-            />
-          )}
-        </Animated.View>
-      </GestureDetector>
+        )}
+      </Animated.View>
     </GestureHandlerRootView>
   );
 };
@@ -273,6 +270,10 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     paddingHorizontal: 16,
     overflow: "hidden",
+  },
+  headerTouchArea: {
+    width: "100%",
+    backgroundColor: "transparent",
   },
   dragHandleContainer: {
     alignItems: "center",
