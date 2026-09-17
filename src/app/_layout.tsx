@@ -1,6 +1,7 @@
+import { ScheduleProvider } from "@/context/ScheduleContext";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { BottomNav, TabId } from "@/features/schedule/components/BottomNav";
-import { prefetchSearchData } from "@/hooks/useSearchData"; // Импортируем функцию предзагрузки
+import { prefetchSearchData } from "@/hooks/useSearchData";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NavigationBar } from "expo-navigation-bar";
 import { Stack, usePathname } from "expo-router";
@@ -109,7 +110,9 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
-          <MainLayout />
+          <ScheduleProvider>
+            <MainLayout />
+          </ScheduleProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </SafeAreaProvider>

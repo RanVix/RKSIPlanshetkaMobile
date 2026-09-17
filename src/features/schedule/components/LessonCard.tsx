@@ -1,8 +1,5 @@
-import { COLORS } from "@/constants/theme";
-import { useTheme } from "@/context/ThemeContext";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { Lesson } from "../types/schedule";
 
 import CabinetIcon from "@/assets/svgs/CabinetIcon.svg";
 import CabinetIconBlack from "@/assets/svgs/CabinetIconBlack.svg";
@@ -10,15 +7,48 @@ import CombinedIcon from "@/assets/svgs/CombinedIcon.svg";
 import CombinedIconBlack from "@/assets/svgs/CombinedIconBlack.svg";
 import UserIcon from "@/assets/svgs/UserIcon.svg";
 import UserIconBlack from "@/assets/svgs/UserIconBlack.svg";
+import { COLORS } from "@/constants/theme";
+import { useTheme } from "@/context/ThemeContext";
+import { ScheduleLessonItem } from "../types/schedule";
 
-interface LessonCardProps {
-  lesson: Lesson;
+// Расширяем интерфейс для поддержки сгруппированных преподавателей и совмещенок
+export interface GroupedLesson extends ScheduleLessonItem {
+  subItems?: ScheduleLessonItem[];
+  pairNumber?: number;
 }
 
-export const LessonCard: React.FC<LessonCardProps> = ({ lesson }) => {
+interface LessonCardProps {
+  lesson: GroupedLesson;
+  fallbackNumber: number;
+}
+
+export const LessonCard: React.FC<LessonCardProps> = ({
+  lesson,
+  fallbackNumber,
+}) => {
   const { colors, theme } = useTheme();
   const isDark = theme === "dark";
-  const isAccentBadge = lesson.number === 6;
+
+  // Разбиваем время по длинному или обычному тире
+  const timeParts = lesson.time
+    ? lesson.time.split(/\s*—\s*|\s*-\s*/)
+    : ["", ""];
+  const startTime = timeParts[0]?.trim() || "";
+  const endTime = timeParts[1]?.trim() || "";
+
+  // Определяем номер пары
+  const parsedNumber = lesson.name
+    ? parseInt(lesson.name.replace(/\D/g, ""), 10)
+    : NaN;
+  const pairNumber =
+    lesson.pairNumber || (!isNaN(parsedNumber) ? parsedNumber : fallbackNumber);
+
+  // Собираем все блоки подгрупп/преподавателей
+  const teacherBlocks =
+    lesson.subItems && lesson.subItems.length > 0 ? lesson.subItems : [lesson];
+
+  const isAccentBadge = teacherBlocks.some((item) => item.is_now);
+  const hasWarning = teacherBlocks.some((item) => item.subject_warning);
 
   const SelectedUserIcon = isDark ? UserIcon : UserIconBlack;
   const SelectedCabinetIcon = isDark ? CabinetIcon : CabinetIconBlack;
@@ -26,77 +56,110 @@ export const LessonCard: React.FC<LessonCardProps> = ({ lesson }) => {
 
   return (
     <View style={[styles.card, { backgroundColor: colors.cardBg }]}>
+      {/* Время */}
       <View style={styles.timeBlock}>
         <Text style={[styles.startTime, { color: colors.textPrimary }]}>
-          {lesson.startTime}
+          {startTime}
         </Text>
-        <Text style={[styles.endTime, { color: colors.textSecondary }]}>
-          {lesson.endTime}
-        </Text>
+        {endTime ? (
+          <Text style={[styles.endTime, { color: colors.textSecondary }]}>
+            {endTime}
+          </Text>
+        ) : null}
       </View>
 
+      {/* Контентная часть */}
       <View style={styles.contentBlock}>
         <View style={styles.headerContainer}>
           <View style={styles.headerRow}>
+            {/* Берем название предмета из subject */}
             <Text style={[styles.subjectTitle, { color: colors.textPrimary }]}>
-              {lesson.subject}
+              {lesson.subject || lesson.name}
             </Text>
-            {lesson.hasIndicator && <View style={styles.redDot} />}
+            {hasWarning && <View style={styles.redDot} />}
           </View>
           <View style={styles.titleDivider} />
         </View>
 
+        {/* Список подгрупп/преподавателей */}
         <View style={styles.teachersList}>
-          {lesson.teachers.map((teacher, index) => (
-            <View key={teacher.id || index} style={styles.teacherContainer}>
-              {index > 0 && <View style={styles.teacherDivider} />}
+          {teacherBlocks.map((item, idx) => {
+            // Фильтруем совмещенку: берем элементы из combined
+            const combinedList = item.combined || [];
 
-              {/* Преподаватель */}
-              {teacher.name && (
-                <View style={styles.infoRow}>
-                  <View style={styles.iconContainer}>
-                    <SelectedUserIcon width={15} height={15} />
-                  </View>
-                  <Text
-                    style={[styles.infoText, { color: colors.textPrimary }]}
-                  >
-                    {teacher.name}
-                  </Text>
-                </View>
-              )}
+            return (
+              <View key={idx} style={styles.teacherContainer}>
+                {idx > 0 && <View style={styles.teacherDivider} />}
 
-              {/* Кабинет */}
-              {teacher.room && (
-                <View style={styles.infoRow}>
-                  <View style={styles.iconContainer}>
-                    <SelectedCabinetIcon width={15} height={15} />
+                {/* Преподаватель */}
+                {Boolean(item.teacher) && (
+                  <View style={styles.infoRow}>
+                    <View style={styles.iconContainer}>
+                      <SelectedUserIcon width={15} height={15} />
+                    </View>
+                    <Text
+                      style={[styles.infoText, { color: colors.textPrimary }]}
+                    >
+                      {item.teacher}
+                    </Text>
                   </View>
-                  <Text
-                    style={[styles.infoText, { color: colors.textPrimary }]}
-                  >
-                    {teacher.room}
-                  </Text>
-                </View>
-              )}
+                )}
 
-              {/* Группа / Подгруппа */}
-              {teacher.group && (
-                <View style={styles.infoRow}>
-                  <View style={styles.iconContainer}>
-                    <SelectedCombinedIcon width={15} height={15} />
+                {/* Кабинет */}
+                {Boolean(item.audience) && (
+                  <View style={styles.infoRow}>
+                    <View style={styles.iconContainer}>
+                      <SelectedCabinetIcon width={15} height={15} />
+                    </View>
+                    <Text
+                      style={[styles.infoText, { color: colors.textPrimary }]}
+                    >
+                      {item.audience}
+                    </Text>
                   </View>
-                  <Text
-                    style={[styles.infoText, { color: colors.textPrimary }]}
-                  >
-                    {teacher.group}
-                  </Text>
-                </View>
-              )}
-            </View>
-          ))}
+                )}
+
+                {/* Блок совмещенных групп из массива combined */}
+                {combinedList.length > 0 &&
+                  combinedList.map((comb, cIdx) => {
+                    // Формируем детальную подпись совмещенки
+                    const details = [
+                      comb.group,
+                      comb.teacher && comb.teacher !== item.teacher
+                        ? comb.teacher
+                        : null,
+                      comb.audience && comb.audience !== item.audience
+                        ? comb.audience
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" • ");
+
+                    if (!details) return null;
+
+                    return (
+                      <View key={`comb-${cIdx}`} style={styles.infoRow}>
+                        <View style={styles.iconContainer}>
+                          <SelectedCombinedIcon width={15} height={15} />
+                        </View>
+                        <Text
+                          style={[
+                            styles.infoText,
+                            { color: colors.textPrimary },
+                          ]}
+                        >
+                          {details}
+                        </Text>
+                      </View>
+                    );
+                  })}
+              </View>
+            );
+          })}
         </View>
       </View>
 
+      {/* Номер пары */}
       <View
         style={[
           styles.badge,
@@ -115,7 +178,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({ lesson }) => {
             },
           ]}
         >
-          {lesson.number}
+          {pairNumber}
         </Text>
       </View>
     </View>
@@ -164,13 +227,14 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   subjectTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "500",
     color: COLORS.white,
+    flexShrink: 1,
   },
   redDot: {
-    width: 5,
-    height: 5,
+    width: 6,
+    height: 6,
     borderRadius: 3,
     backgroundColor: COLORS.redDot,
     marginLeft: 6,
@@ -206,7 +270,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: COLORS.infoText,
   },
-
   badge: {
     position: "absolute",
     left: 0,

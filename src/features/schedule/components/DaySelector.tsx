@@ -1,5 +1,5 @@
 import { useTheme } from "@/context/ThemeContext";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   LayoutChangeEvent,
   StyleSheet,
@@ -12,22 +12,54 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
-import { DaySchedule } from "../types/schedule";
 
-interface DaySelectorProps {
-  days: DaySchedule[];
+export interface DayItem {
+  id: string;
+  dayOfWeek: string;
+  date: string;
+  isToday?: boolean;
 }
 
-export const DaySelector: React.FC<DaySelectorProps> = ({ days }) => {
+export interface DaySelectorProps {
+  days: DayItem[];
+  selectedId?: string;
+  onSelectDay?: (day: DayItem) => void;
+}
+
+export const DaySelector: React.FC<DaySelectorProps> = ({
+  days,
+  selectedId: externalSelectedId,
+  onSelectDay,
+}) => {
   const { colors } = useTheme();
-  const [selectedId, setSelectedId] = useState(days[0]?.id);
+
+  // Приоритет: внешне переданный ID -> тот, у которого isToday -> первый из массива
+  const initialId =
+    externalSelectedId || days.find((d) => d.isToday)?.id || days[0]?.id || "";
+
+  const [selectedId, setSelectedId] = useState(initialId);
   const [cardLayouts, setCardLayouts] = useState<
     Record<string, { x: number; width: number }>
   >({});
 
+  // Синхронизируем внутренний state, если дата меняется извне
+  useEffect(() => {
+    if (externalSelectedId) {
+      setSelectedId(externalSelectedId);
+    } else if (days.length > 0 && !selectedId) {
+      const defaultId = days.find((d) => d.isToday)?.id || days[0].id;
+      setSelectedId(defaultId);
+    }
+  }, [externalSelectedId, days]);
+
   const handleLayout = (id: string, event: LayoutChangeEvent) => {
     const { x, width } = event.nativeEvent.layout;
     setCardLayouts((prev) => ({ ...prev, [id]: { x, width } }));
+  };
+
+  const handlePress = (item: DayItem) => {
+    setSelectedId(item.id);
+    onSelectDay?.(item);
   };
 
   const animatedIndicatorStyle = useAnimatedStyle(() => {
@@ -70,7 +102,7 @@ export const DaySelector: React.FC<DaySelectorProps> = ({ days }) => {
             key={item.id}
             onLayout={(e) => handleLayout(item.id, e)}
             style={styles.dayCard}
-            onPress={() => setSelectedId(item.id)}
+            onPress={() => handlePress(item)}
             activeOpacity={0.7}
           >
             <Text style={[styles.dayOfWeek, { color: textColor }]}>
