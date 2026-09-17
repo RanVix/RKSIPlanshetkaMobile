@@ -30,7 +30,6 @@ const fixFontScale = () => {
 
 fixFontScale();
 
-// Персистер для сохранения кэша React Query в AsyncStorage
 const asyncStoragePersister = createAsyncStoragePersister({
   storage: AsyncStorage,
   key: "OFFLINE_SCHEDULE_CACHE",
@@ -105,9 +104,9 @@ export default function RootLayout() {
         defaultOptions: {
           queries: {
             retry: 2,
-            staleTime: 1000 * 60 * 60, // 1 час считаем данные свежими
-            gcTime: 1000 * 60 * 60 * 24 * 7, // 7 дней храним кэш для оффлайна
-            networkMode: "offlineFirst", // Использовать кэш при отсутствии сети
+            staleTime: 1000 * 60 * 60,
+            gcTime: 1000 * 60 * 60 * 24 * 7,
+            networkMode: "offlineFirst",
             refetchOnWindowFocus: false,
           },
         },

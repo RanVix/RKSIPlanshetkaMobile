@@ -11,7 +11,6 @@ import { COLORS } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { ScheduleLessonItem } from "../types/schedule";
 
-// Расширяем интерфейс для поддержки сгруппированных преподавателей и совмещенок
 export interface GroupedLesson extends ScheduleLessonItem {
   subItems?: ScheduleLessonItem[];
   pairNumber?: number;
@@ -29,7 +28,6 @@ export const LessonCard: React.FC<LessonCardProps> = ({
   const { colors, theme } = useTheme();
   const isDark = theme === "dark";
 
-  // Разбиваем время по длинному или обычному тире
   const timeParts = lesson.time
     ? lesson.time.split(/\s*—\s*|\s*-\s*/)
     : ["", ""];
@@ -43,7 +41,6 @@ export const LessonCard: React.FC<LessonCardProps> = ({
   const pairNumber =
     lesson.pairNumber || (!isNaN(parsedNumber) ? parsedNumber : fallbackNumber);
 
-  // Собираем все блоки подгрупп/преподавателей
   const teacherBlocks =
     lesson.subItems && lesson.subItems.length > 0 ? lesson.subItems : [lesson];
 
@@ -56,7 +53,6 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 
   return (
     <View style={[styles.card, { backgroundColor: colors.cardBg }]}>
-      {/* Время */}
       <View style={styles.timeBlock}>
         <Text style={[styles.startTime, { color: colors.textPrimary }]}>
           {startTime}
@@ -68,11 +64,9 @@ export const LessonCard: React.FC<LessonCardProps> = ({
         ) : null}
       </View>
 
-      {/* Контентная часть */}
       <View style={styles.contentBlock}>
         <View style={styles.headerContainer}>
           <View style={styles.headerRow}>
-            {/* Берем название предмета из subject */}
             <Text style={[styles.subjectTitle, { color: colors.textPrimary }]}>
               {lesson.subject || lesson.name}
             </Text>
@@ -81,17 +75,14 @@ export const LessonCard: React.FC<LessonCardProps> = ({
           <View style={styles.titleDivider} />
         </View>
 
-        {/* Список подгрупп/преподавателей */}
         <View style={styles.teachersList}>
           {teacherBlocks.map((item, idx) => {
-            // Фильтруем совмещенку: берем элементы из combined
             const combinedList = item.combined || [];
 
             return (
               <View key={idx} style={styles.teacherContainer}>
                 {idx > 0 && <View style={styles.teacherDivider} />}
 
-                {/* Преподаватель */}
                 {Boolean(item.teacher) && (
                   <View style={styles.infoRow}>
                     <View style={styles.iconContainer}>
@@ -105,7 +96,6 @@ export const LessonCard: React.FC<LessonCardProps> = ({
                   </View>
                 )}
 
-                {/* Кабинет */}
                 {Boolean(item.audience) && (
                   <View style={styles.infoRow}>
                     <View style={styles.iconContainer}>
@@ -119,10 +109,8 @@ export const LessonCard: React.FC<LessonCardProps> = ({
                   </View>
                 )}
 
-                {/* Блок совмещенных групп из массива combined */}
                 {combinedList.length > 0 &&
                   combinedList.map((comb, cIdx) => {
-                    // Формируем детальную подпись совмещенки
                     const details = [
                       comb.group,
                       comb.teacher && comb.teacher !== item.teacher
@@ -159,7 +147,6 @@ export const LessonCard: React.FC<LessonCardProps> = ({
         </View>
       </View>
 
-      {/* Номер пары */}
       <View
         style={[
           styles.badge,

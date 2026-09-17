@@ -41,7 +41,6 @@ export default function Index() {
   const { targetName } = useScheduleContext();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  // Флаг блокировки частых переключений во время анимации
   const isAnimatingRef = useRef(false);
 
   const { isConnected } = useNetInfo();
@@ -53,7 +52,6 @@ export default function Index() {
     error,
   } = useScheduleData(targetName);
 
-  // Динамический список дней на основе ключей API
   const days: DayItem[] = useMemo(() => {
     if (!scheduleData) return [];
     const dates = Object.keys(scheduleData);
@@ -74,7 +72,6 @@ export default function Index() {
     });
   }, [scheduleData]);
 
-  // Активный ключ даты
   const activeDateKey = useMemo(() => {
     if (selectedDate && scheduleData?.[selectedDate]) {
       return selectedDate;
@@ -83,23 +80,18 @@ export default function Index() {
     return dates.length > 0 ? dates[0] : null;
   }, [scheduleData, selectedDate]);
 
-  // Значения для анимации контента карточек
   const translateX = useSharedValue(0);
   const opacity = useSharedValue(1);
 
-  // Разблокировка жестов
   const unlockAnimation = useCallback(() => {
     isAnimatingRef.current = false;
   }, []);
 
-  // Окончание выявления нового контента
   const startEntranceAnimation = useCallback(
     (targetX: number) => {
-      // Подготавливаем позицию для входа нового дня с другой стороны
       translateX.value = targetX;
       opacity.value = 0;
 
-      // Плавно проявляем новый срендеренный контент
       translateX.value = withTiming(0, { duration: 180 });
       opacity.value = withTiming(1, { duration: 180 }, (finished) => {
         if (finished) {
@@ -110,12 +102,10 @@ export default function Index() {
     [translateX, opacity, unlockAnimation],
   );
 
-  // Стабильная функция обновления выбранной даты для передачи в runOnJS
   const updateSelectedDate = useCallback((newDateKey: string) => {
     setSelectedDate(newDateKey);
   }, []);
 
-  // Предзагрузка контента -> Затем анимация появления
   const prepareAndAnimateDateChange = useCallback(
     (newDateKey: string, direction: "left" | "right") => {
       if (isAnimatingRef.current) return;
@@ -124,14 +114,11 @@ export default function Index() {
       const exitX = direction === "left" ? -30 : 30;
       const enterX = direction === "left" ? 30 : -30;
 
-      // 1. Анимируем уход текущего дня (быстро скрываем)
       translateX.value = withTiming(exitX, { duration: 100 });
       opacity.value = withTiming(0, { duration: 100 }, (finished) => {
         if (finished) {
-          // 2. Меняем дату в React state через стабильный JS-коллбэк
           runOnJS(updateSelectedDate)(newDateKey);
 
-          // 3. Запускаем анимацию появления с противоположной стороны
           runOnJS(startEntranceAnimation)(enterX);
         }
       });
@@ -170,13 +157,13 @@ export default function Index() {
 
   // Свайп жесты
   const flingRight = Gesture.Fling()
-    .direction(1) // Вправо -> Предыдущий день
+    .direction(1)
     .onEnd(() => {
       runOnJS(goToPrevDay)();
     });
 
   const flingLeft = Gesture.Fling()
-    .direction(2) // Влево -> Следующий день
+    .direction(2)
     .onEnd(() => {
       runOnJS(goToNextDay)();
     });
@@ -188,7 +175,6 @@ export default function Index() {
     opacity: opacity.value,
   }));
 
-  // Фильтры (корпус, тип пар, источник)
   const filters = useMemo(() => {
     if (!scheduleData || !activeDateKey) return [];
     const dayData = scheduleData[activeDateKey];
@@ -228,7 +214,6 @@ export default function Index() {
     return result;
   }, [scheduleData, activeDateKey]);
 
-  // Группировка подгрупп
   const currentLessons = useMemo(() => {
     if (!scheduleData || !activeDateKey) return [];
     const rawItems = scheduleData[activeDateKey]?.items || [];

@@ -89,7 +89,6 @@ export const SearchScreen: React.FC = () => {
     );
   }, []);
 
-  // Клик по выбранной группе/преподавателю/аудитории
   const handleItemPress = useCallback(
     (item: SearchItem) => {
       setTargetName(item.name);

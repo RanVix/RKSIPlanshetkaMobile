@@ -33,7 +33,6 @@ export const DaySelector: React.FC<DaySelectorProps> = ({
 }) => {
   const { colors } = useTheme();
 
-  // Приоритет: внешне переданный ID -> тот, у которого isToday -> первый из массива
   const initialId =
     externalSelectedId || days.find((d) => d.isToday)?.id || days[0]?.id || "";
 
@@ -42,7 +41,6 @@ export const DaySelector: React.FC<DaySelectorProps> = ({
     Record<string, { x: number; width: number }>
   >({});
 
-  // Синхронизируем внутренний state, если дата меняется извне
   useEffect(() => {
     if (externalSelectedId) {
       setSelectedId(externalSelectedId);
