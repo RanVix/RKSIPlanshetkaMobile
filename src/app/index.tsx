@@ -1,3 +1,16 @@
+import { useScheduleContext } from "@/context/ScheduleContext";
+import { useTheme } from "@/context/ThemeContext";
+import {
+  DayItem,
+  DaySelector,
+} from "@/features/schedule/components/DaySelector";
+import { FilterBadges } from "@/features/schedule/components/FilterBadges";
+import { Header } from "@/features/schedule/components/Header";
+import {
+  GroupedLesson,
+  LessonCard,
+} from "@/features/schedule/components/LessonCard";
+import { useScheduleData } from "@/hooks/useScheduleData";
 import { Feather } from "@expo/vector-icons";
 import { useNetInfo } from "@react-native-community/netinfo";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -19,20 +32,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-
-import { useScheduleContext } from "@/context/ScheduleContext";
-import { useTheme } from "@/context/ThemeContext";
-import {
-  DayItem,
-  DaySelector,
-} from "@/features/schedule/components/DaySelector";
-import { FilterBadges } from "@/features/schedule/components/FilterBadges";
-import { Header } from "@/features/schedule/components/Header";
-import {
-  GroupedLesson,
-  LessonCard,
-} from "@/features/schedule/components/LessonCard";
-import { useScheduleData } from "@/hooks/useScheduleData";
+import { EmptySchedule } from "../features/schedule/components/EmptyScedule";
 
 const WEEK_DAYS = ["ВС", "ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ"];
 
@@ -176,7 +176,7 @@ export default function Index() {
   }));
 
   const filters = useMemo(() => {
-    if (!scheduleData || !activeDateKey) return [];
+    if (!targetName || !scheduleData || !activeDateKey) return [];
     const dayData = scheduleData[activeDateKey];
     if (!dayData) return [];
 
@@ -212,10 +212,10 @@ export default function Index() {
     }
 
     return result;
-  }, [scheduleData, activeDateKey]);
+  }, [targetName, scheduleData, activeDateKey]);
 
   const currentLessons = useMemo(() => {
-    if (!scheduleData || !activeDateKey) return [];
+    if (!targetName || !scheduleData || !activeDateKey) return [];
     const rawItems = scheduleData[activeDateKey]?.items || [];
 
     const grouped: GroupedLesson[] = [];
@@ -236,7 +236,7 @@ export default function Index() {
     });
 
     return grouped;
-  }, [scheduleData, activeDateKey]);
+  }, [targetName, scheduleData, activeDateKey]);
 
   return (
     <GestureHandlerRootView style={styles.flex}>
@@ -272,7 +272,7 @@ export default function Index() {
             </View>
           )}
 
-          {days.length > 0 && (
+          {targetName && days.length > 0 && (
             <DaySelector
               days={days}
               selectedId={activeDateKey || undefined}
@@ -280,44 +280,65 @@ export default function Index() {
             />
           )}
 
-          {/* Анимированная область свайпов для списка пар */}
-          <GestureDetector gesture={combinedGesture}>
-            <Animated.View style={[styles.lessonsContainer, animatedStyle]}>
-              {filters.length > 0 && <FilterBadges filters={filters} />}
+          {!targetName ? (
+            <View style={styles.emptyStateContainer}>
+              <View
+                style={[
+                  styles.iconCircle,
+                  {
+                    backgroundColor: colors.cardBg,
+                    borderColor: colors.cardBgBorder,
+                  },
+                ]}
+              >
+                <Feather name="calendar" size={40} color={colors.accentBlue} />
+              </View>
+              <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
+                Выберите группу
+              </Text>
+              <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
+                Укажите группу или преподавателя в шапке, чтобы отобразить
+                расписание
+              </Text>
+            </View>
+          ) : (
+            <GestureDetector gesture={combinedGesture}>
+              <Animated.View style={[styles.lessonsContainer, animatedStyle]}>
+                {filters.length > 0 && <FilterBadges filters={filters} />}
 
-              {isLoading && (
-                <View style={styles.centerBlock}>
-                  <ActivityIndicator size="large" color={colors.textPrimary} />
-                </View>
-              )}
+                {isLoading && (
+                  <View style={styles.centerBlock}>
+                    <ActivityIndicator
+                      size="large"
+                      color={colors.textPrimary}
+                    />
+                  </View>
+                )}
 
-              {isError && (
-                <View style={styles.centerBlock}>
-                  <Text style={{ color: colors.textPrimary }}>
-                    {error?.message || "Не удалось загрузить расписание"}
-                  </Text>
-                </View>
-              )}
+                {isError && (
+                  <View style={styles.centerBlock}>
+                    <Text style={{ color: colors.textPrimary }}>
+                      {error?.message || "Не удалось загрузить расписание"}
+                    </Text>
+                  </View>
+                )}
 
-              {!isLoading && !isError && currentLessons.length === 0 && (
-                <View style={styles.centerBlock}>
-                  <Text style={{ color: colors.textMuted }}>
-                    Расписание отсутствует
-                  </Text>
-                </View>
-              )}
+                {!isLoading && !isError && currentLessons.length === 0 && (
+                  <EmptySchedule />
+                )}
 
-              {!isLoading &&
-                !isError &&
-                currentLessons.map((lesson, index) => (
-                  <LessonCard
-                    key={`${lesson.subject}-${lesson.time}-${index}`}
-                    lesson={lesson}
-                    fallbackNumber={index + 1}
-                  />
-                ))}
-            </Animated.View>
-          </GestureDetector>
+                {!isLoading &&
+                  !isError &&
+                  currentLessons.map((lesson, index) => (
+                    <LessonCard
+                      key={`${lesson.subject}-${lesson.time}-${index}`}
+                      lesson={lesson}
+                      fallbackNumber={index + 1}
+                    />
+                  ))}
+              </Animated.View>
+            </GestureDetector>
+          )}
         </ScrollView>
       </View>
     </GestureHandlerRootView>
@@ -361,5 +382,31 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
     alignItems: "center",
     justifyContent: "center",
+  },
+  emptyStateContainer: {
+    paddingVertical: 60,
+    paddingHorizontal: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 20,
   },
 });
