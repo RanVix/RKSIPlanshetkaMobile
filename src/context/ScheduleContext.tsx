@@ -1,4 +1,7 @@
-import React, { createContext, useContext, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { createContext, useContext, useEffect, useState } from "react";
+
+const STORAGE_KEY = "@selected_target_name";
 
 interface ScheduleContextType {
   targetName: string;
@@ -12,8 +15,29 @@ const ScheduleContext = createContext<ScheduleContextType | undefined>(
 export const ScheduleProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  // Дефолтное значение для стартовой загрузки
-  const [targetName, setTargetName] = useState<string>("ИС-31");
+  const [targetName, setTargetNameState] = useState<string>("Выберете группу");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const savedTarget = await AsyncStorage.getItem(STORAGE_KEY);
+        if (savedTarget) {
+          setTargetNameState(savedTarget);
+        }
+      } catch (e) {
+        console.error("Ошибка при чтении из AsyncStorage:", e);
+      }
+    })();
+  }, []);
+
+  const setTargetName = async (newName: string) => {
+    setTargetNameState(newName);
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, newName);
+    } catch (e) {
+      console.error("Ошибка при сохранении в AsyncStorage:", e);
+    }
+  };
 
   return (
     <ScheduleContext.Provider value={{ targetName, setTargetName }}>

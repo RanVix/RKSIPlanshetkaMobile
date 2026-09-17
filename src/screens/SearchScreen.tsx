@@ -22,6 +22,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useScheduleContext } from "@/context/ScheduleContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useSearchData } from "@/hooks/useSearchData";
 import { SearchInput } from "../features/search/components/SearchInput";
@@ -40,6 +41,7 @@ export const SearchScreen: React.FC = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { setTargetName } = useScheduleContext();
 
   const {
     groups: apiGroups = [],
@@ -61,7 +63,6 @@ export const SearchScreen: React.FC = () => {
     router.back();
   }, [router]);
 
-  // Единственный жест закрытия — только для верхней шапки
   const headerPanGesture = Gesture.Pan()
     .onChange((event) => {
       if (event.translationY > 0) {
@@ -88,9 +89,14 @@ export const SearchScreen: React.FC = () => {
     );
   }, []);
 
-  const handleItemPress = useCallback((_item: SearchItem) => {
-    // Выбор элемента
-  }, []);
+  // Клик по выбранной группе/преподавателю/аудитории
+  const handleItemPress = useCallback(
+    (item: SearchItem) => {
+      setTargetName(item.name);
+      router.back();
+    },
+    [setTargetName, router],
+  );
 
   const q = deferredQuery.trim().toLowerCase();
 
@@ -195,7 +201,6 @@ export const SearchScreen: React.FC = () => {
           animatedStyle,
         ]}
       >
-        {/* Интерактивная шапка: свайп за этот блок закрывает модальное окно */}
         <GestureDetector gesture={headerPanGesture}>
           <View style={styles.headerTouchArea}>
             <View style={styles.dragHandleContainer}>
@@ -252,7 +257,6 @@ export const SearchScreen: React.FC = () => {
             maxToRenderPerBatch={4}
             windowSize={5}
             removeClippedSubviews={true}
-            // Убрали RefreshControl — свайп вверх/вниз по списку больше не отправляет повторных запросов
           />
         )}
       </Animated.View>

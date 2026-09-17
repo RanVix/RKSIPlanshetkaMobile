@@ -1,14 +1,18 @@
-import { ScheduleProvider } from "@/context/ScheduleContext";
-import { ThemeProvider, useTheme } from "@/context/ThemeContext";
-import { BottomNav, TabId } from "@/features/schedule/components/BottomNav";
-import { prefetchSearchData } from "@/hooks/useSearchData";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
+import { QueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { NavigationBar } from "expo-navigation-bar";
 import { Stack, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { Platform, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+
+import { ScheduleProvider } from "@/context/ScheduleContext";
+import { ThemeProvider, useTheme } from "@/context/ThemeContext";
+import { BottomNav, TabId } from "@/features/schedule/components/BottomNav";
+import { prefetchSearchData } from "@/hooks/useSearchData";
 
 const fixFontScale = () => {
   if ((Text as any).defaultProps == null) {
@@ -25,6 +29,12 @@ const fixFontScale = () => {
 };
 
 fixFontScale();
+
+// Персистер для сохранения кэша React Query в AsyncStorage
+const asyncStoragePersister = createAsyncStoragePersister({
+  storage: AsyncStorage,
+  key: "OFFLINE_SCHEDULE_CACHE",
+});
 
 function MainLayout() {
   const pathname = usePathname();
@@ -95,7 +105,9 @@ export default function RootLayout() {
         defaultOptions: {
           queries: {
             retry: 2,
-            staleTime: 1000 * 60 * 60,
+            staleTime: 1000 * 60 * 60, // 1 час считаем данные свежими
+            gcTime: 1000 * 60 * 60 * 24 * 7, // 7 дней храним кэш для оффлайна
+            networkMode: "offlineFirst", // Использовать кэш при отсутствии сети
             refetchOnWindowFocus: false,
           },
         },
@@ -108,13 +120,16 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{ persister: asyncStoragePersister }}
+      >
         <ThemeProvider>
           <ScheduleProvider>
             <MainLayout />
           </ScheduleProvider>
         </ThemeProvider>
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </SafeAreaProvider>
   );
 }

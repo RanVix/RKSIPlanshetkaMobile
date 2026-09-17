@@ -8,22 +8,29 @@ export const SEARCH_QUERY_KEYS = {
   audiences: ["search", "audiences"],
 } as const;
 
+// Общие настройки кэширования для поиска
+const QUERY_OPTIONS = {
+  staleTime: 1000 * 60 * 60, // 1 час считаем данные свежими
+  gcTime: 1000 * 60 * 60 * 24 * 7, // 7 дней храним кэш в AsyncStorage
+  networkMode: "offlineFirst" as const, // Брать кэш при отсутствии сети
+};
+
 export const prefetchSearchData = async (queryClient: QueryClient) => {
   await Promise.allSettled([
     queryClient.prefetchQuery({
       queryKey: SEARCH_QUERY_KEYS.groups,
       queryFn: searchApi.getGroups,
-      staleTime: 1000 * 60 * 60,
+      ...QUERY_OPTIONS,
     }),
     queryClient.prefetchQuery({
       queryKey: SEARCH_QUERY_KEYS.teachers,
       queryFn: searchApi.getTeachers,
-      staleTime: 1000 * 60 * 60,
+      ...QUERY_OPTIONS,
     }),
     queryClient.prefetchQuery({
       queryKey: SEARCH_QUERY_KEYS.audiences,
       queryFn: searchApi.getAudiences,
-      staleTime: 1000 * 60 * 60,
+      ...QUERY_OPTIONS,
     }),
   ]);
 };
@@ -43,21 +50,21 @@ export function useSearchData(): SearchDataResult {
   const groupsQuery = useQuery({
     queryKey: SEARCH_QUERY_KEYS.groups,
     queryFn: searchApi.getGroups,
-    staleTime: 1000 * 60 * 60,
+    ...QUERY_OPTIONS,
   });
 
   // 2. Запрос преподавателей
   const teachersQuery = useQuery({
     queryKey: SEARCH_QUERY_KEYS.teachers,
     queryFn: searchApi.getTeachers,
-    staleTime: 1000 * 60 * 60,
+    ...QUERY_OPTIONS,
   });
 
   // 3. Запрос аудиторий
   const audiencesQuery = useQuery({
     queryKey: SEARCH_QUERY_KEYS.audiences,
     queryFn: searchApi.getAudiences,
-    staleTime: 1000 * 60 * 60,
+    ...QUERY_OPTIONS,
   });
 
   const groups: SearchItem[] = (groupsQuery.data || []).map((name) => ({

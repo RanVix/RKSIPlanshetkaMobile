@@ -1,4 +1,6 @@
-import { useMemo, useState } from "react";
+import { Feather } from "@expo/vector-icons";
+import { useNetInfo } from "@react-native-community/netinfo";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -6,6 +8,17 @@ import {
   Text,
   View,
 } from "react-native";
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from "react-native-gesture-handler";
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
 import { useScheduleContext } from "@/context/ScheduleContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -28,6 +41,11 @@ export default function Index() {
   const { targetName } = useScheduleContext();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
+  // Флаг блокировки частых переключений во время анимации
+  const isAnimatingRef = useRef(false);
+
+  const { isConnected } = useNetInfo();
+
   const {
     data: scheduleData,
     isLoading,
@@ -44,7 +62,6 @@ export default function Index() {
       const dateObj = new Date(dateStr);
       const dayOfWeek = WEEK_DAYS[dateObj.getDay()] || "";
 
-      // YYYY-MM-DD -> DD.MM
       const [, month, day] = dateStr.split("-");
       const formattedDate = `${day}.${month}`;
 
@@ -65,6 +82,111 @@ export default function Index() {
     const dates = Object.keys(scheduleData || {});
     return dates.length > 0 ? dates[0] : null;
   }, [scheduleData, selectedDate]);
+
+  // Значения для анимации контента карточек
+  const translateX = useSharedValue(0);
+  const opacity = useSharedValue(1);
+
+  // Разблокировка жестов
+  const unlockAnimation = useCallback(() => {
+    isAnimatingRef.current = false;
+  }, []);
+
+  // Окончание выявления нового контента
+  const startEntranceAnimation = useCallback(
+    (targetX: number) => {
+      // Подготавливаем позицию для входа нового дня с другой стороны
+      translateX.value = targetX;
+      opacity.value = 0;
+
+      // Плавно проявляем новый срендеренный контент
+      translateX.value = withTiming(0, { duration: 180 });
+      opacity.value = withTiming(1, { duration: 180 }, (finished) => {
+        if (finished) {
+          runOnJS(unlockAnimation)();
+        }
+      });
+    },
+    [translateX, opacity, unlockAnimation],
+  );
+
+  // Стабильная функция обновления выбранной даты для передачи в runOnJS
+  const updateSelectedDate = useCallback((newDateKey: string) => {
+    setSelectedDate(newDateKey);
+  }, []);
+
+  // Предзагрузка контента -> Затем анимация появления
+  const prepareAndAnimateDateChange = useCallback(
+    (newDateKey: string, direction: "left" | "right") => {
+      if (isAnimatingRef.current) return;
+      isAnimatingRef.current = true;
+
+      const exitX = direction === "left" ? -30 : 30;
+      const enterX = direction === "left" ? 30 : -30;
+
+      // 1. Анимируем уход текущего дня (быстро скрываем)
+      translateX.value = withTiming(exitX, { duration: 100 });
+      opacity.value = withTiming(0, { duration: 100 }, (finished) => {
+        if (finished) {
+          // 2. Меняем дату в React state через стабильный JS-коллбэк
+          runOnJS(updateSelectedDate)(newDateKey);
+
+          // 3. Запускаем анимацию появления с противоположной стороны
+          runOnJS(startEntranceAnimation)(enterX);
+        }
+      });
+    },
+    [translateX, opacity, updateSelectedDate, startEntranceAnimation],
+  );
+
+  // Обработка клика по кнопке дня
+  const handleSelectDay = (day: DayItem) => {
+    if (day.id === activeDateKey || isAnimatingRef.current) return;
+
+    const currentIndex = days.findIndex((d) => d.id === activeDateKey);
+    const newIndex = days.findIndex((d) => d.id === day.id);
+
+    const direction = newIndex > currentIndex ? "left" : "right";
+    prepareAndAnimateDateChange(day.id, direction);
+  };
+
+  // Переход к следующему дню
+  const goToNextDay = useCallback(() => {
+    if (!activeDateKey || days.length === 0 || isAnimatingRef.current) return;
+    const currentIndex = days.findIndex((d) => d.id === activeDateKey);
+    if (currentIndex < days.length - 1) {
+      prepareAndAnimateDateChange(days[currentIndex + 1].id, "left");
+    }
+  }, [activeDateKey, days, prepareAndAnimateDateChange]);
+
+  // Переход к предыдущему дню
+  const goToPrevDay = useCallback(() => {
+    if (!activeDateKey || days.length === 0 || isAnimatingRef.current) return;
+    const currentIndex = days.findIndex((d) => d.id === activeDateKey);
+    if (currentIndex > 0) {
+      prepareAndAnimateDateChange(days[currentIndex - 1].id, "right");
+    }
+  }, [activeDateKey, days, prepareAndAnimateDateChange]);
+
+  // Свайп жесты
+  const flingRight = Gesture.Fling()
+    .direction(1) // Вправо -> Предыдущий день
+    .onEnd(() => {
+      runOnJS(goToPrevDay)();
+    });
+
+  const flingLeft = Gesture.Fling()
+    .direction(2) // Влево -> Следующий день
+    .onEnd(() => {
+      runOnJS(goToNextDay)();
+    });
+
+  const combinedGesture = Gesture.Simultaneous(flingLeft, flingRight);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+    opacity: opacity.value,
+  }));
 
   // Фильтры (корпус, тип пар, источник)
   const filters = useMemo(() => {
@@ -132,60 +254,95 @@ export default function Index() {
   }, [scheduleData, activeDateKey]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <Header groupName={targetName} />
+    <GestureHandlerRootView style={styles.flex}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <Header groupName={targetName} />
 
-        {days.length > 0 && (
-          <DaySelector
-            days={days}
-            selectedId={activeDateKey || undefined}
-            onSelectDay={(day) => setSelectedDate(day.id)}
-          />
-        )}
+          {/* Баннер оффлайн-режима */}
+          {isConnected === false && (
+            <View
+              style={[
+                styles.offlineBanner,
+                {
+                  backgroundColor: colors.cardBg,
+                  borderColor: colors.cardBgBorder,
+                },
+              ]}
+            >
+              <Feather
+                name="wifi-off"
+                size={16}
+                color={colors.accentBlue}
+                style={styles.offlineIcon}
+              />
+              <Text
+                style={[styles.offlineText, { color: colors.textSecondary }]}
+              >
+                Нет сети. Отображаются сохраненные данные.
+              </Text>
+            </View>
+          )}
 
-        {filters.length > 0 && <FilterBadges filters={filters} />}
-
-        {isLoading && (
-          <View style={styles.centerBlock}>
-            <ActivityIndicator size="large" color={colors.textPrimary} />
-          </View>
-        )}
-
-        {isError && (
-          <View style={styles.centerBlock}>
-            <Text style={{ color: colors.textPrimary }}>
-              {error?.message || "Не удалось загрузить расписание"}
-            </Text>
-          </View>
-        )}
-
-        {!isLoading && !isError && currentLessons.length === 0 && (
-          <View style={styles.centerBlock}>
-            <Text style={{ color: colors.textMuted }}>
-              Расписание отсутствует
-            </Text>
-          </View>
-        )}
-
-        {!isLoading &&
-          !isError &&
-          currentLessons.map((lesson, index) => (
-            <LessonCard
-              key={`${lesson.subject}-${lesson.time}-${index}`}
-              lesson={lesson}
-              fallbackNumber={index + 1}
+          {days.length > 0 && (
+            <DaySelector
+              days={days}
+              selectedId={activeDateKey || undefined}
+              onSelectDay={handleSelectDay}
             />
-          ))}
-      </ScrollView>
-    </View>
+          )}
+
+          {/* Анимированная область свайпов для списка пар */}
+          <GestureDetector gesture={combinedGesture}>
+            <Animated.View style={[styles.lessonsContainer, animatedStyle]}>
+              {filters.length > 0 && <FilterBadges filters={filters} />}
+
+              {isLoading && (
+                <View style={styles.centerBlock}>
+                  <ActivityIndicator size="large" color={colors.textPrimary} />
+                </View>
+              )}
+
+              {isError && (
+                <View style={styles.centerBlock}>
+                  <Text style={{ color: colors.textPrimary }}>
+                    {error?.message || "Не удалось загрузить расписание"}
+                  </Text>
+                </View>
+              )}
+
+              {!isLoading && !isError && currentLessons.length === 0 && (
+                <View style={styles.centerBlock}>
+                  <Text style={{ color: colors.textMuted }}>
+                    Расписание отсутствует
+                  </Text>
+                </View>
+              )}
+
+              {!isLoading &&
+                !isError &&
+                currentLessons.map((lesson, index) => (
+                  <LessonCard
+                    key={`${lesson.subject}-${lesson.time}-${index}`}
+                    lesson={lesson}
+                    fallbackNumber={index + 1}
+                  />
+                ))}
+            </Animated.View>
+          </GestureDetector>
+        </ScrollView>
+      </View>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },
@@ -193,6 +350,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 30,
     paddingBottom: 100,
+  },
+  offlineBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  offlineIcon: {
+    marginRight: 8,
+  },
+  offlineText: {
+    fontSize: 13,
+    fontWeight: "500",
+    flex: 1,
+  },
+  lessonsContainer: {
+    flex: 1,
+    minHeight: 300,
   },
   centerBlock: {
     paddingVertical: 40,
