@@ -36,6 +36,12 @@ import { EmptySchedule } from "../features/schedule/components/EmptyScedule";
 
 const WEEK_DAYS = ["ВС", "ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ"];
 
+const TIME_TYPE_LABELS: Record<string, string> = {
+  normal: "Обычные пары",
+  shortened: "Сокращенные пары",
+  class_hour: "Классный час",
+};
+
 export default function Index() {
   const { colors } = useTheme();
   const { targetName } = useScheduleContext();
@@ -194,12 +200,7 @@ export default function Index() {
       result.push({
         id: "time_type",
         icon: "clock" as const,
-        text:
-          dayData.time_type === "normal"
-            ? "Обычные пары"
-            : dayData.time_type === "shortened"
-              ? "Сокращенные пары"
-              : dayData.time_type,
+        text: TIME_TYPE_LABELS[dayData.time_type] || dayData.time_type,
       });
     }
 
@@ -247,7 +248,6 @@ export default function Index() {
         >
           <Header groupName={targetName} />
 
-          {/* Баннер оффлайн-режима */}
           {isConnected === false && (
             <View
               style={[
@@ -303,7 +303,7 @@ export default function Index() {
             </View>
           ) : (
             <GestureDetector gesture={combinedGesture}>
-              <Animated.View style={[styles.lessonsContainer, animatedStyle]}>
+              <Animated.View style={[styles.swipeArea, animatedStyle]}>
                 {filters.length > 0 && <FilterBadges filters={filters} />}
 
                 {isLoading && (
@@ -353,6 +353,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 16,
     paddingTop: 30,
     paddingBottom: 100,
@@ -374,9 +375,9 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     flex: 1,
   },
-  lessonsContainer: {
+  swipeArea: {
     flex: 1,
-    minHeight: 300,
+    minHeight: 400,
   },
   centerBlock: {
     paddingVertical: 40,

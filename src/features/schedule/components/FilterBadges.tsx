@@ -50,7 +50,7 @@ export const FilterBadges: React.FC<FilterBadgesProps> = ({ filters }) => {
 const styles = StyleSheet.create({
   scroll: {
     marginBottom: 16,
-    flexGrow: 0, // Не дает ScrollView растягиваться на всю доступную высоту контейнера
+    flexGrow: 0,
   },
   scrollContent: {
     flexDirection: "row",
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 12,
     gap: 6,
-    alignSelf: "flex-start", // Фиксирует высоту бейджа по его контенту
+    alignSelf: "flex-start",
 
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 4 },

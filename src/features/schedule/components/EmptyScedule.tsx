@@ -15,11 +15,7 @@ export const EmptySchedule: React.FC = () => {
           { backgroundColor: colors.cardBg, borderColor: colors.cardBgBorder },
         ]}
       >
-        <Feather
-          name="coffee"
-          size={28}
-          color={colors.accentBlue || "#3B82F6"}
-        />
+        <Feather name="coffee" size={28} color={colors.white} />
       </View>
       <Text style={[styles.title, { color: colors.textPrimary }]}>
         Занятий нет
