@@ -37,7 +37,7 @@ export const FilterBadges: React.FC<FilterBadgesProps> = ({ filters }) => {
             },
           ]}
         >
-          <Feather name={filter.icon} size={15} color={colors.textFilter} />
+          <Feather name={filter.icon} size={13} color={colors.textFilter} />
           <Text style={[styles.text, { color: colors.textFilter }]}>
             {filter.text}
           </Text>
