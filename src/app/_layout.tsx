@@ -108,6 +108,7 @@ export default function RootLayout() {
             gcTime: 1000 * 60 * 60 * 24 * 7,
             networkMode: "offlineFirst",
             refetchOnWindowFocus: false,
+            refetchOnReconnect: true,
           },
         },
       }),
@@ -121,7 +122,11 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <PersistQueryClientProvider
         client={queryClient}
-        persistOptions={{ persister: asyncStoragePersister }}
+        persistOptions={{
+          persister: asyncStoragePersister,
+          maxAge: Infinity,
+          buster: "v1_schedule_cache",
+        }}
       >
         <ThemeProvider>
           <ScheduleProvider>
