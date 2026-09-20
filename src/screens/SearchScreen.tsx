@@ -1,6 +1,13 @@
 import { Feather } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import React, { useCallback, useDeferredValue, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -29,6 +36,8 @@ import { SearchInput } from "../features/search/components/SearchInput";
 import { SearchSection } from "../features/search/components/SearchSection";
 import { SearchItem } from "../features/search/types/search";
 
+const FAVORITES_STORAGE_KEY = "@schedule_favorites";
+
 interface SectionData {
   id: string;
   title: string;
@@ -56,8 +65,34 @@ export const SearchScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const deferredQuery = useDeferredValue(searchQuery);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [isFavoritesLoaded, setIsFavoritesLoaded] = useState(false);
 
   const translateY = useSharedValue(0);
+
+  useEffect(() => {
+    const loadFavorites = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
+        if (stored) {
+          setFavoriteIds(JSON.parse(stored));
+        }
+      } catch (e) {
+        console.error("Ошибка при загрузке избранного:", e);
+      } finally {
+        setIsFavoritesLoaded(true);
+      }
+    };
+
+    loadFavorites();
+  }, []);
+
+  const saveFavorites = async (ids: string[]) => {
+    try {
+      await AsyncStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(ids));
+    } catch (e) {
+      console.error("Ошибка при сохранении избранного:", e);
+    }
+  };
 
   const handleClose = useCallback(() => {
     router.back();
@@ -82,11 +117,13 @@ export const SearchScreen: React.FC = () => {
   }));
 
   const handleToggleFavorite = useCallback((item: SearchItem) => {
-    setFavoriteIds((prev) =>
-      prev.includes(item.id)
+    setFavoriteIds((prev) => {
+      const next = prev.includes(item.id)
         ? prev.filter((id) => id !== item.id)
-        : [...prev, item.id],
-    );
+        : [...prev, item.id];
+      saveFavorites(next);
+      return next;
+    });
   }, []);
 
   const handleItemPress = useCallback(
@@ -139,7 +176,7 @@ export const SearchScreen: React.FC = () => {
       sections.push({
         id: "favorites",
         title: "Избранное",
-        subtitle: "Зажмите, чтобы добавить в избранное",
+        subtitle: "Зажмите, чтобы добавить или удалить",
         iconName: "bookmark",
         items: favorites,
       });
@@ -220,7 +257,7 @@ export const SearchScreen: React.FC = () => {
           </View>
         </GestureDetector>
 
-        {isLoading && !hasData && (
+        {(isLoading || !isFavoritesLoaded) && !hasData && (
           <View style={styles.centerContainer}>
             <ActivityIndicator size="large" color={colors.textPrimary} />
             <Text style={[styles.statusText, { color: colors.textMuted }]}>
@@ -245,7 +282,7 @@ export const SearchScreen: React.FC = () => {
           </View>
         )}
 
-        {(hasData || (!isLoading && !isError)) && (
+        {(hasData || (!isLoading && !isError)) && isFavoritesLoaded && (
           <FlatList
             data={sectionsData}
             keyExtractor={(item) => item.id}
