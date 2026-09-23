@@ -356,7 +356,10 @@ export function ScheduleScreen() {
             </View>
           ) : (
             <GestureDetector gesture={combinedGesture}>
-              <Animated.View style={[styles.swipeArea, animatedStyle]}>
+              <Animated.View
+                style={[styles.swipeArea, animatedStyle]}
+                needsOffscreenAlphaCompositing
+              >
                 {filters.length > 0 && <FilterBadges filters={filters} />}
 
                 {isLoading && (
@@ -384,7 +387,7 @@ export function ScheduleScreen() {
                   !isError &&
                   currentLessons.map((lesson, index) => (
                     <LessonCard
-                      key={`${lesson.subject}-${lesson.time}-${index}`}
+                      key={`lesson-slot-${index}`}
                       lesson={lesson}
                       fallbackNumber={
                         getLessonNumber(

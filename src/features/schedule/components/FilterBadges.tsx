@@ -28,6 +28,7 @@ export const FilterBadges: React.FC<FilterBadgesProps> = ({ filters }) => {
       {filters.map((filter) => (
         <View
           key={filter.id}
+          collapsable={false}
           style={[
             styles.badge,
             {
@@ -51,12 +52,14 @@ const styles = StyleSheet.create({
   scroll: {
     marginBottom: 16,
     flexGrow: 0,
+    marginHorizontal: -6,
   },
   scrollContent: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     paddingVertical: 6,
+    paddingHorizontal: 6,
   },
   badge: {
     flexDirection: "row",

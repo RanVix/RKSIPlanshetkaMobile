@@ -52,7 +52,10 @@ export const LessonCard: React.FC<LessonCardProps> = ({
   const SelectedCombinedIcon = isDark ? CombinedIcon : CombinedIconBlack;
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.cardBg }]}>
+    <View
+      collapsable={false}
+      style={[styles.card, { backgroundColor: colors.cardBg }]}
+    >
       <View style={styles.timeBlock}>
         <Text style={[styles.startTime, { color: colors.textPrimary }]}>
           {startTime}
