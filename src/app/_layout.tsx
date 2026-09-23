@@ -13,6 +13,7 @@ import { ScheduleProvider } from "@/context/ScheduleContext";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { BottomNav, TabId } from "@/features/schedule/components/BottomNav";
 import { prefetchSearchData } from "@/hooks/useSearchData";
+import { UpdateModal } from "../features/components/UpdateModal";
 
 const fixFontScale = () => {
   if ((Text as any).defaultProps == null) {
@@ -93,6 +94,8 @@ function MainLayout() {
       </Stack>
 
       {!isSearchScreen && <BottomNav activeTab={getActiveTab()} />}
+
+      <UpdateModal />
     </View>
   );
 }
