@@ -2,11 +2,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import { NavigationBar } from "expo-navigation-bar";
 import { Stack, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ScheduleProvider } from "@/context/ScheduleContext";
@@ -39,12 +38,6 @@ const asyncStoragePersister = createAsyncStoragePersister({
 function MainLayout() {
   const pathname = usePathname();
   const { theme, colors } = useTheme();
-
-  useEffect(() => {
-    if (Platform.OS === "android") {
-      NavigationBar.setStyle(theme === "dark" ? "light" : "dark");
-    }
-  }, [theme]);
 
   const getActiveTab = (): TabId => {
     if (pathname === "/bells") return "bells";
