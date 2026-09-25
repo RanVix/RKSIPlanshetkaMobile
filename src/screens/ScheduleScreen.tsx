@@ -98,7 +98,7 @@ const getLessonNumber = (
 
 export function ScheduleScreen() {
   const { colors } = useTheme();
-  const { targetName } = useScheduleContext();
+  const { targetName, targetCategory } = useScheduleContext();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const isAnimatingRef = useRef(false);
@@ -389,6 +389,7 @@ export function ScheduleScreen() {
                     <LessonCard
                       key={`lesson-slot-${index}`}
                       lesson={lesson}
+                      targetCategory={targetCategory}
                       fallbackNumber={
                         getLessonNumber(
                           lesson.time,

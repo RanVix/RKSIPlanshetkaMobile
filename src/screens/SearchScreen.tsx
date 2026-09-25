@@ -128,7 +128,7 @@ export const SearchScreen: React.FC = () => {
 
   const handleItemPress = useCallback(
     (item: SearchItem) => {
-      setTargetName(item.name);
+      setTargetName(item.name, item.category);
       router.back();
     },
     [setTargetName, router],

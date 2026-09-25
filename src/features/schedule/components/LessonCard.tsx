@@ -9,6 +9,7 @@ import UserIcon from "@/assets/svgs/UserIcon.svg";
 import UserIconBlack from "@/assets/svgs/UserIconBlack.svg";
 import { COLORS } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
+import { SearchCategory } from "@/features/search/types/search";
 import { ScheduleLessonItem } from "../types/schedule";
 
 export interface GroupedLesson extends ScheduleLessonItem {
@@ -19,14 +20,17 @@ export interface GroupedLesson extends ScheduleLessonItem {
 interface LessonCardProps {
   lesson: GroupedLesson;
   fallbackNumber: number;
+  targetCategory?: SearchCategory;
 }
 
 export const LessonCard: React.FC<LessonCardProps> = ({
   lesson,
   fallbackNumber,
+  targetCategory = "groups",
 }) => {
   const { colors, theme } = useTheme();
   const isDark = theme === "dark";
+  const isTeacherTarget = targetCategory === "teachers";
 
   const timeParts = lesson.time
     ? lesson.time.split(/\s*—\s*|\s*-\s*/)
@@ -34,7 +38,6 @@ export const LessonCard: React.FC<LessonCardProps> = ({
   const startTime = timeParts[0]?.trim() || "";
   const endTime = timeParts[1]?.trim() || "";
 
-  // Определяем номер пары
   const parsedNumber = lesson.name
     ? parseInt(lesson.name.replace(/\D/g, ""), 10)
     : NaN;
@@ -81,12 +84,13 @@ export const LessonCard: React.FC<LessonCardProps> = ({
         <View style={styles.teachersList}>
           {teacherBlocks.map((item, idx) => {
             const combinedList = item.combined || [];
+            const primaryLabel = isTeacherTarget ? item.group : item.teacher;
 
             return (
               <View key={idx} style={styles.teacherContainer}>
                 {idx > 0 && <View style={styles.teacherDivider} />}
 
-                {Boolean(item.teacher) && (
+                {Boolean(primaryLabel) && (
                   <View style={styles.infoRow}>
                     <View style={styles.iconContainer}>
                       <SelectedUserIcon width={15} height={15} />
@@ -94,7 +98,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({
                     <Text
                       style={[styles.infoText, { color: colors.textPrimary }]}
                     >
-                      {item.teacher}
+                      {primaryLabel}
                     </Text>
                   </View>
                 )}
@@ -115,7 +119,9 @@ export const LessonCard: React.FC<LessonCardProps> = ({
                 {combinedList.length > 0 &&
                   combinedList.map((comb, cIdx) => {
                     const details = [
-                      comb.group,
+                      isTeacherTarget && comb.group === item.group
+                        ? null
+                        : comb.group,
                       comb.teacher && comb.teacher !== item.teacher
                         ? comb.teacher
                         : null,

@@ -1,11 +1,18 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
+import { SearchCategory } from "@/features/search/types/search";
+
 const STORAGE_KEY = "@selected_target_name";
+const CATEGORY_STORAGE_KEY = "@selected_target_category";
+
+const isSearchCategory = (value: unknown): value is SearchCategory =>
+  value === "groups" || value === "teachers" || value === "audiences";
 
 interface ScheduleContextType {
   targetName: string;
-  setTargetName: (name: string) => void;
+  targetCategory: SearchCategory;
+  setTargetName: (name: string, category: SearchCategory) => void;
 }
 
 const ScheduleContext = createContext<ScheduleContextType | undefined>(
@@ -16,13 +23,22 @@ export const ScheduleProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [targetName, setTargetNameState] = useState<string>("Выберете группу");
+  const [targetCategory, setTargetCategoryState] =
+    useState<SearchCategory>("groups");
 
   useEffect(() => {
     (async () => {
       try {
-        const savedTarget = await AsyncStorage.getItem(STORAGE_KEY);
+        const [savedTarget, savedCategory] = await Promise.all([
+          AsyncStorage.getItem(STORAGE_KEY),
+          AsyncStorage.getItem(CATEGORY_STORAGE_KEY),
+        ]);
+
         if (savedTarget) {
           setTargetNameState(savedTarget);
+        }
+        if (isSearchCategory(savedCategory)) {
+          setTargetCategoryState(savedCategory);
         }
       } catch (e) {
         console.error("Ошибка при чтении из AsyncStorage:", e);
@@ -30,17 +46,23 @@ export const ScheduleProvider: React.FC<{ children: React.ReactNode }> = ({
     })();
   }, []);
 
-  const setTargetName = async (newName: string) => {
+  const setTargetName = async (newName: string, category: SearchCategory) => {
     setTargetNameState(newName);
+    setTargetCategoryState(category);
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, newName);
+      await AsyncStorage.multiSet([
+        [STORAGE_KEY, newName],
+        [CATEGORY_STORAGE_KEY, category],
+      ]);
     } catch (e) {
       console.error("Ошибка при сохранении в AsyncStorage:", e);
     }
   };
 
   return (
-    <ScheduleContext.Provider value={{ targetName, setTargetName }}>
+    <ScheduleContext.Provider
+      value={{ targetName, targetCategory, setTargetName }}
+    >
       {children}
     </ScheduleContext.Provider>
   );

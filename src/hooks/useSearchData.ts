@@ -8,11 +8,10 @@ export const SEARCH_QUERY_KEYS = {
   audiences: ["search", "audiences"],
 } as const;
 
-// Общие настройки кэширования для поиска
 const QUERY_OPTIONS = {
-  staleTime: 1000 * 60 * 60, // 1 час считаем данные свежими
-  gcTime: 1000 * 60 * 60 * 24 * 7, // 7 дней храним кэш в AsyncStorage
-  networkMode: "offlineFirst" as const, // Брать кэш при отсутствии сети
+  staleTime: 1000 * 60 * 60,
+  gcTime: 1000 * 60 * 60 * 24 * 7,
+  networkMode: "offlineFirst" as const,
 };
 
 export const prefetchSearchData = async (queryClient: QueryClient) => {
