@@ -18,7 +18,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.ranvix.Planshetka"
+      "package": "com.ranvix.RKSIPlanshetka"
     },
     "web": {
       "output": "static",
