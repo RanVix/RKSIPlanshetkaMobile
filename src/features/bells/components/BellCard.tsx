@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "700",
     textAlign: "center",
     marginBottom: 20,

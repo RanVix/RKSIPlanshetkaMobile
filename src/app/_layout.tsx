@@ -4,7 +4,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { Stack, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -15,17 +15,53 @@ import { prefetchSearchData } from "@/hooks/useSearchData";
 import { UpdateModal } from "../features/components/UpdateModal";
 
 const fixFontScale = () => {
-  if ((Text as any).defaultProps == null) {
-    (Text as any).defaultProps = {};
-  }
-  (Text as any).defaultProps.maxFontSizeMultiplier = 1;
-  (Text as any).defaultProps.allowFontScaling = false;
+  const FORCED_TEXT_PROPS = {
+    allowFontScaling: false,
+    maxFontSizeMultiplier: 1,
+  } as const;
 
-  if ((TextInput as any).defaultProps == null) {
-    (TextInput as any).defaultProps = {};
+  const patchFactory = (mod: any, key: "jsx" | "jsxs" | "jsxDEV") => {
+    if (!mod) return;
+    const original = mod[key];
+    if (!original || original.__fontScalePatched) return;
+
+    const patched = (type: any, props: any, ...rest: any[]) => {
+      if (type === Text || type === TextInput) {
+        props = { ...props, ...FORCED_TEXT_PROPS };
+      }
+      return original(type, props, ...rest);
+    };
+    patched.__fontScalePatched = true;
+
+    try {
+      mod[key] = patched;
+    } catch {}
+  };
+
+  try {
+    patchFactory(require("react/jsx-runtime"), "jsx");
+    patchFactory(require("react/jsx-runtime"), "jsxs");
+  } catch {}
+
+  try {
+    patchFactory(require("react/jsx-dev-runtime"), "jsxDEV");
+  } catch {}
+
+  const originalCreateElement = React.createElement;
+  if (!(originalCreateElement as any).__fontScalePatched) {
+    const patchedCreateElement = ((
+      type: any,
+      props: any,
+      ...children: any[]
+    ) => {
+      if (type === Text || type === TextInput) {
+        props = { ...props, ...FORCED_TEXT_PROPS };
+      }
+      return (originalCreateElement as any)(type, props, ...children);
+    }) as typeof React.createElement;
+    (patchedCreateElement as any).__fontScalePatched = true;
+    (React as any).createElement = patchedCreateElement;
   }
-  (TextInput as any).defaultProps.maxFontSizeMultiplier = 1;
-  (TextInput as any).defaultProps.allowFontScaling = false;
 };
 
 fixFontScale();

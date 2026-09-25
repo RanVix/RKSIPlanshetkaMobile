@@ -13,7 +13,6 @@ export const BellRow: React.FC<BellRowProps> = ({ item }) => {
 
   return (
     <View style={styles.row}>
-      {/* На светлой теме кружок черный (#000000) с белым текстом (#FFFFFF) */}
       <View
         style={[
           styles.numberBadge,
@@ -32,7 +31,6 @@ export const BellRow: React.FC<BellRowProps> = ({ item }) => {
         </Text>
       </View>
 
-      {/* Текст со временем пар: черный на светлой теме, из темы на темной */}
       <Text style={[styles.timeText, { color: colors.textPrimary }]}>
         {item.time}
       </Text>
@@ -47,18 +45,18 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   numberBadge: {
-    width: 28,
-    height: 28,
+    width: 26,
+    height: 26,
     borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
   },
   numberText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
   },
   timeText: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: "700",
     letterSpacing: 0.5,
   },

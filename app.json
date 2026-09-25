@@ -2,7 +2,7 @@
   "expo": {
     "name": "Планшетка",
     "slug": "PlanshetkaFullNew",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "planshetkafullnew",
@@ -40,7 +40,8 @@
         "expo-navigation-bar",
         {
           "backgroundColor": "#00000000",
-          "position": "absolute"
+          "position": "absolute",
+          "enforceContrast": false
         }
       ]
     ],
