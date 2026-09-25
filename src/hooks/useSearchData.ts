@@ -78,11 +78,14 @@ export function useSearchData(): SearchDataResult {
     category: "teachers",
   }));
 
-  const audiences: SearchItem[] = (audiencesQuery.data || []).map((name) => ({
-    id: `audience_${name}`,
-    name,
-    category: "audiences",
-  }));
+  const audiences: SearchItem[] = (audiencesQuery.data || [])
+    .slice()
+    .sort((a, b) => a.localeCompare(b, "ru", { numeric: true }))
+    .map((name) => ({
+      id: `audience_${name}`,
+      name,
+      category: "audiences",
+    }));
 
   const isLoading =
     groupsQuery.isLoading ||
