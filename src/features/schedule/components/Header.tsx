@@ -1,7 +1,7 @@
 import { useTheme } from "@/context/ThemeContext";
 import { Feather } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useRef } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -29,7 +29,18 @@ export const Header: React.FC<HeaderProps> = ({
 
   const searchScale = useSharedValue(1);
 
+  const isSearchOpenRef = useRef(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      isSearchOpenRef.current = false;
+    }, []),
+  );
+
   const handleSearchPress = () => {
+    if (isSearchOpenRef.current) return;
+    isSearchOpenRef.current = true;
+
     searchScale.value = withSequence(
       withTiming(1.25, { duration: 120 }),
       withTiming(1, { duration: 120 }),

@@ -56,7 +56,9 @@ export const DaySelector: React.FC<DaySelectorProps> = ({
   };
 
   const handlePress = (item: DayItem) => {
-    setSelectedId(item.id);
+    if (!externalSelectedId) {
+      setSelectedId(item.id);
+    }
     onSelectDay?.(item);
   };
 

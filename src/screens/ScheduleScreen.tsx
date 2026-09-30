@@ -13,7 +13,7 @@ import {
 import { useScheduleData } from "@/hooks/useScheduleData";
 import { Feather } from "@expo/vector-icons";
 import { useNetInfo } from "@react-native-community/netinfo";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -35,6 +35,8 @@ import Animated, {
 import { EmptySchedule } from "../features/schedule/components/EmptyScedule";
 
 const WEEK_DAYS = ["ВС", "ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ"];
+
+const DAY_SWITCH_LOCK_MS = 500;
 
 const TIME_TYPE_LABELS: Record<string, string> = {
   normal: "Обычные пары",
@@ -143,8 +145,18 @@ export function ScheduleScreen() {
   const translateX = useSharedValue(0);
   const opacity = useSharedValue(1);
 
-  const unlockAnimation = useCallback(() => {
-    isAnimatingRef.current = false;
+  const lockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (lockTimeoutRef.current) {
+        clearTimeout(lockTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const updateSelectedDate = useCallback((newDateKey: string) => {
+    setSelectedDate(newDateKey);
   }, []);
 
   const startEntranceAnimation = useCallback(
@@ -153,23 +165,22 @@ export function ScheduleScreen() {
       opacity.value = 0;
 
       translateX.value = withTiming(0, { duration: 180 });
-      opacity.value = withTiming(1, { duration: 180 }, (finished) => {
-        if (finished) {
-          runOnJS(unlockAnimation)();
-        }
-      });
+      opacity.value = withTiming(1, { duration: 180 });
     },
-    [translateX, opacity, unlockAnimation],
+    [translateX, opacity],
   );
-
-  const updateSelectedDate = useCallback((newDateKey: string) => {
-    setSelectedDate(newDateKey);
-  }, []);
 
   const prepareAndAnimateDateChange = useCallback(
     (newDateKey: string, direction: "left" | "right") => {
       if (isAnimatingRef.current) return;
       isAnimatingRef.current = true;
+
+      if (lockTimeoutRef.current) {
+        clearTimeout(lockTimeoutRef.current);
+      }
+      lockTimeoutRef.current = setTimeout(() => {
+        isAnimatingRef.current = false;
+      }, DAY_SWITCH_LOCK_MS);
 
       const exitX = direction === "left" ? -30 : 30;
       const enterX = direction === "left" ? 30 : -30;
