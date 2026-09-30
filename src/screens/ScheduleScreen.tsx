@@ -36,7 +36,7 @@ import { EmptySchedule } from "../features/schedule/components/EmptyScedule";
 
 const WEEK_DAYS = ["ВС", "ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ"];
 
-const DAY_SWITCH_LOCK_MS = 500;
+const DAY_SWITCH_LOCK_MS = 250;
 
 const TIME_TYPE_LABELS: Record<string, string> = {
   normal: "Обычные пары",

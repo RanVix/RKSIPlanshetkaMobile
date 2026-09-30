@@ -9,6 +9,7 @@ interface SearchChipProps {
   isFavorite: boolean;
   onPress: (item: SearchItem) => void;
   onLongPress: (item: SearchItem) => void;
+  width?: number;
 }
 
 export const SearchChip: React.FC<SearchChipProps> = ({
@@ -16,6 +17,7 @@ export const SearchChip: React.FC<SearchChipProps> = ({
   isFavorite,
   onPress,
   onLongPress,
+  width,
 }) => {
   const { colors } = useTheme();
 
@@ -23,6 +25,7 @@ export const SearchChip: React.FC<SearchChipProps> = ({
     <TouchableOpacity
       style={[
         styles.chip,
+        width != null ? { width } : null,
         {
           backgroundColor: colors.cardBg,
         },
@@ -52,7 +55,7 @@ export const SearchChip: React.FC<SearchChipProps> = ({
 
 const styles = StyleSheet.create({
   chip: {
-    width: "48.5%",
+    width: "47%",
     borderRadius: 16,
     paddingVertical: 14,
     paddingHorizontal: 16,

@@ -1,7 +1,7 @@
 import { useTheme } from "@/context/ThemeContext";
 import { Feather } from "@expo/vector-icons";
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useState } from "react";
+import { LayoutChangeEvent, StyleSheet, Text, View } from "react-native";
 import { SearchItem } from "../types/search";
 import { SearchChip } from "./SearchChip";
 
@@ -15,6 +15,9 @@ interface SearchSectionProps {
   onItemLongPress: (item: SearchItem) => void;
 }
 
+const COLUMNS = 2;
+const GRID_GAP = 10;
+
 export const SearchSection: React.FC<SearchSectionProps> = ({
   title,
   subtitle,
@@ -25,6 +28,17 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
   onItemLongPress,
 }) => {
   const { colors } = useTheme();
+
+  const [gridWidth, setGridWidth] = useState(0);
+
+  const handleGridLayout = (event: LayoutChangeEvent) => {
+    setGridWidth(event.nativeEvent.layout.width);
+  };
+
+  const chipWidth =
+    gridWidth > 0
+      ? (gridWidth - GRID_GAP * (COLUMNS - 1)) / COLUMNS
+      : undefined;
 
   if (items.length === 0) return null;
 
@@ -53,11 +67,12 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
         style={[styles.separator, { backgroundColor: colors.cardBgBorder }]}
       />
 
-      <View style={styles.grid}>
+      <View style={styles.grid} onLayout={handleGridLayout}>
         {items.map((item) => (
           <SearchChip
             key={item.id}
             item={item}
+            width={chipWidth}
             isFavorite={favoriteIds.includes(item.id)}
             onPress={onItemPress}
             onLongPress={onItemLongPress}
@@ -97,6 +112,6 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    gap: GRID_GAP,
   },
 });
