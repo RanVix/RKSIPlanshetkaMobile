@@ -34,7 +34,12 @@ export const BellCard: React.FC<BellCardProps> = ({
         !isActive && { opacity: isDark ? 0.35 : 0.45 },
       ]}
     >
-      <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
+      <Text
+        style={[styles.cardTitle, { color: colors.textPrimary }]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.6}
+      >
         {schedule.title}
       </Text>
       <View style={styles.itemList}>
@@ -58,10 +63,12 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 18,
+    lineHeight: 22,
     fontWeight: "700",
     textAlign: "center",
     marginBottom: 20,
+    height: 22,
   },
   itemList: {
     gap: 14,

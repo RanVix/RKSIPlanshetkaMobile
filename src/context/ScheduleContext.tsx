@@ -11,6 +11,9 @@ const isSearchCategory = (value: unknown): value is SearchCategory =>
 
 interface ScheduleContextType {
   targetName: string;
+  // Нужна, чтобы отличать "чьё" сейчас открыто расписание: в карточках
+  // урока при просмотре расписания преподавателя показываем группу,
+  // а при просмотре расписания группы/аудитории — преподавателя.
   targetCategory: SearchCategory;
   setTargetName: (name: string, category: SearchCategory) => void;
 }
@@ -22,7 +25,7 @@ const ScheduleContext = createContext<ScheduleContextType | undefined>(
 export const ScheduleProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [targetName, setTargetNameState] = useState<string>("Выберете группу");
+  const [targetName, setTargetNameState] = useState<string>("");
   const [targetCategory, setTargetCategoryState] =
     useState<SearchCategory>("groups");
 
@@ -37,6 +40,7 @@ export const ScheduleProvider: React.FC<{ children: React.ReactNode }> = ({
         if (savedTarget) {
           setTargetNameState(savedTarget);
         }
+
         if (isSearchCategory(savedCategory)) {
           setTargetCategoryState(savedCategory);
         }

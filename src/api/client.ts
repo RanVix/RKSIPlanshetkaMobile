@@ -1,5 +1,13 @@
 const BASE_URL = "https://planshetka.yarovich.ru/api/v2";
 
+// Без явного таймаута fetch() может зависнуть навсегда, если соединение
+// формально "есть" (например, включён VPN), но пакеты реально никуда не
+// доходят — промис не резолвится и не реджектится, из-за чего react-query
+// вечно остаётся в состоянии isLoading. AbortController гарантирует, что
+// запрос рано или поздно завершится ошибкой, и UI сможет на неё среагировать
+// (в частности — показать уже закэшированные данные вместо вечного спиннера).
+const REQUEST_TIMEOUT_MS = 15000;
+
 interface ApiErrorResponse {
   detail?: string;
 }
@@ -24,6 +32,9 @@ export async function apiClient<T>(
 
   console.log(`[API Request] ${method} -> ${url}`);
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
   try {
     const response = await fetch(url, {
       headers: {
@@ -32,6 +43,7 @@ export async function apiClient<T>(
         ...options?.headers,
       },
       ...options,
+      signal: controller.signal,
     });
 
     if (!response.ok) {
@@ -65,9 +77,19 @@ export async function apiClient<T>(
     if (error instanceof ApiError) {
       throw error;
     }
+
+    if (error instanceof Error && error.name === "AbortError") {
+      console.error(
+        `[API Timeout] ${method} ${endpoint} | Превышено время ожидания ${REQUEST_TIMEOUT_MS}мс`,
+      );
+      throw new Error("Сервер не отвечает. Проверьте подключение к интернету.");
+    }
+
     console.error(`[API Network Error] ${method} ${endpoint}:`, error);
     throw new Error(
       "Не удалось соединиться с сервером. Проверьте подключение к интернету.",
     );
+  } finally {
+    clearTimeout(timeoutId);
   }
 }

@@ -367,35 +367,21 @@ export function ScheduleScreen() {
             </View>
           ) : (
             <GestureDetector gesture={combinedGesture}>
+              {/*
+                needsOffscreenAlphaCompositing — критично для Android:
+                без него elevation/shadow дочерних карточек не всегда
+                корректно подчиняется анимируемому opacity этого контейнера,
+                из-за чего тень на миг "проступает" непрозрачной поверх
+                ещё не отрисованного контента (баг заметен только на
+                светлой теме, т.к. на тёмной тень сливается с фоном).
+              */}
               <Animated.View
                 style={[styles.swipeArea, animatedStyle]}
                 needsOffscreenAlphaCompositing
               >
                 {filters.length > 0 && <FilterBadges filters={filters} />}
 
-                {isLoading && (
-                  <View style={styles.centerBlock}>
-                    <ActivityIndicator
-                      size="large"
-                      color={colors.textPrimary}
-                    />
-                  </View>
-                )}
-
-                {isError && (
-                  <View style={styles.centerBlock}>
-                    <Text style={{ color: colors.textPrimary }}>
-                      {error?.message || "Не удалось загрузить расписание"}
-                    </Text>
-                  </View>
-                )}
-
-                {!isLoading && !isError && currentLessons.length === 0 && (
-                  <EmptySchedule />
-                )}
-
-                {!isLoading &&
-                  !isError &&
+                {currentLessons.length > 0 ? (
                   currentLessons.map((lesson, index) => (
                     <LessonCard
                       key={`lesson-slot-${index}`}
@@ -409,7 +395,23 @@ export function ScheduleScreen() {
                         ) as number
                       }
                     />
-                  ))}
+                  ))
+                ) : isLoading ? (
+                  <View style={styles.centerBlock}>
+                    <ActivityIndicator
+                      size="large"
+                      color={colors.textPrimary}
+                    />
+                  </View>
+                ) : isError ? (
+                  <View style={styles.centerBlock}>
+                    <Text style={{ color: colors.textPrimary }}>
+                      {error?.message || "Не удалось загрузить расписание"}
+                    </Text>
+                  </View>
+                ) : (
+                  <EmptySchedule />
+                )}
               </Animated.View>
             </GestureDetector>
           )}
