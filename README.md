@@ -2,7 +2,7 @@
 
 ![Expo](https://img.shields.io/badge/Expo-000000?logo=Expo&logoColor=white)
 ![React Native](https://img.shields.io/badge/-React%20native-000?&logo=React)
-![Версия-1.0.8](https://img.shields.io/badge/Версия-1.0.8-blue)
+![Версия-1.0.8](https://img.shields.io/badge/Версия-1.0.9-blue)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](./LICENSE)
 ![Android](https://img.shields.io/badge/Android-3DDC84?logo=android&logoColor=white)
 
