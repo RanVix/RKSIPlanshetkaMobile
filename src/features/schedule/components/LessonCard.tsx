@@ -12,6 +12,7 @@ import { COLORS } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { SearchCategory } from "@/features/search/types/search";
 import { ScheduleLessonItem } from "../types/schedule";
+import { SubjectWarningBadge } from "./SubjectWarningBadge";
 
 export interface GroupedLesson extends ScheduleLessonItem {
   subItems?: ScheduleLessonItem[];
@@ -78,7 +79,11 @@ export const LessonCard: React.FC<LessonCardProps> = ({
             <Text style={[styles.subjectTitle, { color: colors.textPrimary }]}>
               {lesson.subject || lesson.name}
             </Text>
-            {hasWarning && <View style={styles.redDot} />}
+            {hasWarning && (
+              <View style={styles.warningBadgeWrapper}>
+                <SubjectWarningBadge />
+              </View>
+            )}
           </View>
           <View style={styles.titleDivider} />
         </View>
@@ -244,11 +249,7 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     flexShrink: 1,
   },
-  redDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.redDot,
+  warningBadgeWrapper: {
     marginLeft: 6,
   },
   titleDivider: {

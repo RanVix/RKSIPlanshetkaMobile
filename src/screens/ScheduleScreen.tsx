@@ -42,7 +42,7 @@ const MAX_DAYS = 7;
 
 const TIME_TYPE_LABELS: Record<string, string> = {
   normal: "Обычные пары",
-  shortened: "Сокращенные пары",
+  short: "Сокращенные пары",
   class_hour: "Классный час",
 };
 
@@ -369,14 +369,6 @@ export function ScheduleScreen() {
             </View>
           ) : (
             <GestureDetector gesture={combinedGesture}>
-              {/*
-                needsOffscreenAlphaCompositing — критично для Android:
-                без него elevation/shadow дочерних карточек не всегда
-                корректно подчиняется анимируемому opacity этого контейнера,
-                из-за чего тень на миг "проступает" непрозрачной поверх
-                ещё не отрисованного контента (баг заметен только на
-                светлой теме, т.к. на тёмной тень сливается с фоном).
-              */}
               <Animated.View
                 style={[styles.swipeArea, animatedStyle]}
                 needsOffscreenAlphaCompositing
