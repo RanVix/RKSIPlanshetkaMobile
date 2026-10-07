@@ -1,56 +1,64 @@
-# Welcome to your Expo app 👋
+# 📋 РКСИ Планшетка
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+![Expo](https://img.shields.io/badge/Expo-000000?logo=Expo&logoColor=white)
+![React Native](https://img.shields.io/badge/-React%20native-000?&logo=React)
+![Версия-1.0.8](https://img.shields.io/badge/Версия-1.0.8-blue)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](./LICENSE)
+![Android](https://img.shields.io/badge/Android-3DDC84?logo=android&logoColor=white)
 
-## Get started
 
-1. Install dependencies
+**Удобное приложение для просмотра расписания с планшетки и сайта РКСИ**
 
-   ```bash
-   npm install
-   ```
+![Banner](.github/banner.png)
 
-2. Start the app
 
-   ```bash
-   npx expo start
-   ```
+## 📥 Скачать
 
-In the output, you'll find options to open the app in a
+Выберите удобный для вас способ скачивания:
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+[<img src=".github/github.png" alt="Скачать с GitHub" height="70" align="center">](https://github.com/RanVix/RKSIPlanshetkaMobile/releases/latest/)
+[<img src=".github/rustore.png" alt="Скачать с RuStore" height="70" align="center">](https://www.rustore.ru/catalog/app/com.ranvix.RKSIPlanshetka)
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
-## Get a fresh project
+## 📸 Скриншоты
 
-When you're ready, run:
+| <img src=".github/main-black.jpg" height="700"> | <img src=".github/search-black.jpg" height="700"> | <img src=".github/calls-black.jpg" height="700"> |
+| :---: | :---: | :---: |
+| <img src=".github/main-white.jpg" height="700"> | <img src=".github/search-white.jpg" height="700"> | <img src=".github/calls-white.jpg" height="700"> |
 
-```bash
-npm run reset-project
-```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## 🔨 Технологии
+[![Expo](https://img.shields.io/badge/Expo-000020?logo=expo&logoColor=white)](https://expo.dev/)
+[![React Native](https://img.shields.io/badge/React%20Native-61DAFB?logo=react&logoColor=black)](https://reactnative.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![TanStack Query](https://img.shields.io/badge/TanStack%20Query-FF4154?logo=reactquery&logoColor=white)](https://tanstack.com/query)
+[![Reanimated](https://img.shields.io/badge/Reanimated-000000?logo=react&logoColor=white)](https://docs.swmansion.com/react-native-reanimated/)
+[![Gesture Handler](https://img.shields.io/badge/Gesture%20Handler-000000?logo=react&logoColor=white)](https://docs.swmansion.com/react-native-gesture-handler/)
+[![EAS](https://img.shields.io/badge/EAS%20Build%20%7C%20Submit-000020?logo=expo&logoColor=white)](https://docs.expo.dev/eas/)
 
-### Other setup steps
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## 📜 Задачи
 
-## Learn more
+- [x] **База**
+  - [x] Дизайн
+  - [x] Backend
+  - [x] Frontend
+- [x] **Основной функционал**
+  - [x] Группы, кабинеты, преподаватели
+  - [x] Отображение пар
+  - [x] Кеширование
+- [x] **Beta-релиз**
+  - [x] RuStore
+  - [x] Перейти на v2 бэкенд
+  - [x] Темы
+  - [x] Уведомление об обновлении
+  - [x] Фикс багов
+- [x] **Финальный релиз**
 
-To learn more about developing your project with Expo, look at the following resources:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+<div align="center">
 
-## Join the community
+[GNU AGPL v3 License](./LICENSE)<br>
+**© 2026 RanVix & Yarovich**
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+</div>
