@@ -36,7 +36,9 @@ import { EmptySchedule } from "../features/schedule/components/EmptyScedule";
 
 const WEEK_DAYS = ["ВС", "ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ"];
 
-const DAY_SWITCH_LOCK_MS = 250;
+const DAY_SWITCH_LOCK_MS = 500;
+
+const MAX_DAYS = 7;
 
 const TIME_TYPE_LABELS: Record<string, string> = {
   normal: "Обычные пары",
@@ -116,7 +118,7 @@ export function ScheduleScreen() {
 
   const days: DayItem[] = useMemo(() => {
     if (!scheduleData) return [];
-    const dates = Object.keys(scheduleData);
+    const dates = Object.keys(scheduleData).slice(0, MAX_DAYS);
 
     return dates.map((dateStr, index) => {
       const dateObj = new Date(dateStr);
