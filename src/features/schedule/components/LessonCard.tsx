@@ -1,3 +1,4 @@
+import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -31,6 +32,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({
   const { colors, theme } = useTheme();
   const isDark = theme === "dark";
   const isTeacherTarget = targetCategory === "teachers";
+  const isAudienceTarget = targetCategory === "audiences";
 
   const timeParts = lesson.time
     ? lesson.time.split(/\s*—\s*|\s*-\s*/)
@@ -84,7 +86,12 @@ export const LessonCard: React.FC<LessonCardProps> = ({
         <View style={styles.teachersList}>
           {teacherBlocks.map((item, idx) => {
             const combinedList = item.combined || [];
+
             const primaryLabel = isTeacherTarget ? item.group : item.teacher;
+
+            const secondaryLabel = isAudienceTarget
+              ? item.group
+              : item.audience;
 
             return (
               <View key={idx} style={styles.teacherContainer}>
@@ -103,15 +110,23 @@ export const LessonCard: React.FC<LessonCardProps> = ({
                   </View>
                 )}
 
-                {Boolean(item.audience) && (
+                {Boolean(secondaryLabel) && (
                   <View style={styles.infoRow}>
                     <View style={styles.iconContainer}>
-                      <SelectedCabinetIcon width={15} height={15} />
+                      {isAudienceTarget ? (
+                        <Feather
+                          name="users"
+                          size={15}
+                          color={colors.textPrimary}
+                        />
+                      ) : (
+                        <SelectedCabinetIcon width={15} height={15} />
+                      )}
                     </View>
                     <Text
                       style={[styles.infoText, { color: colors.textPrimary }]}
                     >
-                      {item.audience}
+                      {secondaryLabel}
                     </Text>
                   </View>
                 )}
@@ -119,7 +134,8 @@ export const LessonCard: React.FC<LessonCardProps> = ({
                 {combinedList.length > 0 &&
                   combinedList.map((comb, cIdx) => {
                     const details = [
-                      isTeacherTarget && comb.group === item.group
+                      (isTeacherTarget || isAudienceTarget) &&
+                      comb.group === item.group
                         ? null
                         : comb.group,
                       comb.teacher && comb.teacher !== item.teacher
