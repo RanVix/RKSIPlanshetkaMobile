@@ -337,6 +337,30 @@ export function ScheduleScreen() {
               </Text>
             </View>
           )}
+          {isConnected !== false && isError && (
+            <View
+              style={[
+                styles.offlineBanner,
+                {
+                  backgroundColor: colors.cardBg,
+                  borderColor: colors.cardBgBorder,
+                },
+              ]}
+            >
+              <Feather
+                name="shield-off"
+                size={16}
+                color={colors.accentBlue}
+                style={styles.offlineIcon}
+              />
+              <Text
+                style={[styles.offlineText, { color: colors.textSecondary }]}
+              >
+                Не удаётся связаться с сервером - возможно, мешает VPN.
+                Отображаются сохраненные данные.
+              </Text>
+            </View>
+          )}
 
           {targetName && days.length > 0 && (
             <DaySelector
@@ -374,7 +398,6 @@ export function ScheduleScreen() {
                 needsOffscreenAlphaCompositing
               >
                 {filters.length > 0 && <FilterBadges filters={filters} />}
-
                 {currentLessons.length > 0 ? (
                   currentLessons.map((lesson, index) => (
                     <LessonCard

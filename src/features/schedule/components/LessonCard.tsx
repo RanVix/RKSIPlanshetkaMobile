@@ -41,6 +41,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({
   const startTime = timeParts[0]?.trim() || "";
   const endTime = timeParts[1]?.trim() || "";
 
+  // Определяем номер пары
   const parsedNumber = lesson.name
     ? parseInt(lesson.name.replace(/\D/g, ""), 10)
     : NaN;
@@ -57,10 +58,24 @@ export const LessonCard: React.FC<LessonCardProps> = ({
   const SelectedCabinetIcon = isDark ? CabinetIcon : CabinetIconBlack;
   const SelectedCombinedIcon = isDark ? CombinedIcon : CombinedIconBlack;
 
+  const hasAnyDetails = teacherBlocks.some((item) => {
+    const primaryLabel = isTeacherTarget ? item.group : item.teacher;
+    const secondaryLabel = isAudienceTarget ? item.group : item.audience;
+    return (
+      Boolean(primaryLabel) ||
+      Boolean(secondaryLabel) ||
+      (item.combined && item.combined.length > 0)
+    );
+  });
+
   return (
     <View
       collapsable={false}
-      style={[styles.card, { backgroundColor: colors.cardBg }]}
+      style={[
+        styles.card,
+        { backgroundColor: colors.cardBg },
+        !hasAnyDetails && styles.cardNoDetails,
+      ]}
     >
       <View style={styles.timeBlock}>
         <Text style={[styles.startTime, { color: colors.textPrimary }]}>
@@ -91,9 +106,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({
         <View style={styles.teachersList}>
           {teacherBlocks.map((item, idx) => {
             const combinedList = item.combined || [];
-
             const primaryLabel = isTeacherTarget ? item.group : item.teacher;
-
             const secondaryLabel = isAudienceTarget
               ? item.group
               : item.audience;
@@ -216,6 +229,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+  },
+
+  cardNoDetails: {
+    paddingBottom: 40,
   },
   timeBlock: {
     width: 65,
