@@ -11,9 +11,6 @@ const isSearchCategory = (value: unknown): value is SearchCategory =>
 
 interface ScheduleContextType {
   targetName: string;
-  // Нужна, чтобы отличать "чьё" сейчас открыто расписание: в карточках
-  // урока при просмотре расписания преподавателя показываем группу,
-  // а при просмотре расписания группы/аудитории — преподавателя.
   targetCategory: SearchCategory;
   setTargetName: (name: string, category: SearchCategory) => void;
 }
