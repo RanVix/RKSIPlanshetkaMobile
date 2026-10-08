@@ -19,7 +19,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.ranvix.Planshetka",
-      "versionCode": 9
+      "versionCode": 25
     },
     "web": {
       "output": "static",
